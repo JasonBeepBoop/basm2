@@ -1,7 +1,7 @@
 use basm2::*;
 
 fn main() {
-    let input_string = r#"macro_rules! my_macro  arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg ) {
+    let input_string = r#"macro_rules! my_macro ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg ) {
     mov %arg1, %arg2 ; comment
 }
 
