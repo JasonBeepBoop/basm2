@@ -120,7 +120,7 @@ fn lex_macro_arguments(
             Ok(TokenKind::Ident(arg_name)) => {
                 match lex_single_macro_argument(arg_name, input, lexer) {
                     Ok(v) => args.extend(v),
-                    Err(e) => panic!("{e}"),
+                    Err(e) => return Err(e),
                 }
             }
             Ok(TokenKind::RightParen) => break,
@@ -185,7 +185,7 @@ fn lex_macro_arguments(
     Ok(tokens)
 }
 
-fn lex_macro(
+fn lex_macros(
     input: &str,
     lexer: &mut logos::SpannedIter<TokenKind>,
 ) -> Result<Vec<TokenKind>, LexerError> {
@@ -213,7 +213,7 @@ fn lex_macro(
             // O.o look, macro arguments!
             match lex_macro_arguments(name, input, lexer) {
                 Ok(v) => tokens.extend(v),
-                Err(e) => panic!("{e}"),
+                Err(e) => return Err(e),
             }
         }
         _ => {
@@ -238,13 +238,13 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
         // begin token iteration here
         match token {
             Ok(TokenKind::Whitespace) | Ok(TokenKind::Tab) => {}
-            Ok(TokenKind::MacroDef(_)) => match lex_macro(input, &mut lexer) {
+            Ok(TokenKind::MacroDef(_)) => match lex_macros(input, &mut lexer) {
                 Ok(v) => tokens.extend(v),
                 Err(e) => return Err(e),
             },
             Ok(t) => {
                 tokens.push(t);
-                //column += lexer.slice().len();
+                // column += lexer.slice().len();
             }
             Err(()) => {
                 return Err(LexerError {
