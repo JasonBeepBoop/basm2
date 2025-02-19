@@ -17,7 +17,9 @@ macro_rules! boink (floop: imm, florp: ireg) {
 "#;
     println!("{input_string}");
     match lex(input_string) {
-        Ok(tokens) => println!("{}", serde_json::to_string_pretty(&tokens).unwrap()),
+        Ok(tokens) => {
+            println!("{}", serde_json::to_string_pretty(&tokens).unwrap());
+        }
         Err(e) => println!("Error: {}", e),
     }
 }

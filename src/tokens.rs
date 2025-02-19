@@ -1,21 +1,23 @@
 use logos::Logos;
 use serde::Serialize;
 
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum InstructionArgument {
     Mem(i64),
-    iMem(i64),
+    IMem(i64),
     Reg(i64),
-    iReg(i64),
-    imm(i64),
+    IReg(i64),
+    Imm(i64),
     Ident(String),
 }
 
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct InstructionData {
     pub name: String,
     pub args: Vec<InstructionArgument>,
 }
 
-#[derive(Logos, Debug, PartialEq, Serialize)]
+#[derive(Logos, Debug, Clone, PartialEq, Serialize)]
 pub enum TokenKind {
     #[token("\n")]
     Newline,
@@ -116,7 +118,7 @@ pub enum TokenKind {
     #[token(":")]
     Colon,
 
-    #[regex("r[0-9]", |lex| lex.slice()[1..].parse::<u8>().unwrap())]
+    #[regex("[rR][0-9]", |lex| lex.slice()[1..].parse::<u8>().unwrap())]
     Register(u8),
 
     #[regex(r"'([^\\']|\\.)'", |lex| parse_char(lex.slice()))]
@@ -137,7 +139,7 @@ pub enum TokenKind {
     #[regex(r"[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
     IntLit(i64),
 
-    #[regex(r"macro_rules!\s+[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
+    #[regex(r"macro_rules!", |lex| lex.slice().to_string())]
     MacroDef(String),
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
@@ -150,22 +152,24 @@ pub enum TokenKind {
     Comment,
 
     Macro(MacroContent),
+
+    Instruction(InstructionData),
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct MacroContent {
     pub name: String,
     pub args: Vec<FullArgument>,
     pub tokens: Vec<TokenKind>,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct FullArgument {
     pub name: String,
     pub arg_type: ArgumentType,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum ArgumentType {
     Mem,
     Imem,
