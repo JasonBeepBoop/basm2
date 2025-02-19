@@ -4,6 +4,7 @@ use std::fmt;
 
 #[derive(Debug)]
 pub struct LexerError {
+    pub input: String,
     pub message: String,
     pub line: usize,
     pub column: usize,
@@ -11,14 +12,30 @@ pub struct LexerError {
 
 impl fmt::Display for LexerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
+        writeln!(
             f,
-            "Error at line {}:{} - {}",
+            "at line {}:{} - {}",
             self.line, self.column, self.message
-        )
+        )?;
+        let mut nlc = 0;
+        for (index, character) in self.input.chars().enumerate() {
+            if character == '\n' {
+                nlc += 1;
+            }
+            if index == self.line {
+                break;
+            }
+        }
+        let mut linedata= self.input.lines();
+        for _ in 0..nlc {
+            linedata.next();
+        }
+        writeln!(f, "{}", linedata.next().unwrap())?;
+        write!(f, "{}{}", " ".repeat(self.line), "^".repeat(self.column - self.line))
     }
 }
 pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
+    let input_str = input.to_string();
     let empty_lexer = TokenKind::lexer(input);
     let mut lexer = empty_lexer.spanned();
     let mut tokens = Vec::new();
@@ -34,13 +51,18 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                 } else {
                     println!("{:?}", token);
                     return Err(LexerError {
+                        input: input_str,
                         message: "expected ident after macro decl".to_string(),
                         line: span.start,
                         column: span.end,
                     });
                 };
                 // start collecting goodies in the macro :3
-                match lexer.next().unwrap().0 {
+                let (val, loc) = match lexer.next() {
+                    Some((v, l)) => (v, l),
+                    None => panic!(),
+                };
+                match val {
                     Ok(TokenKind::LeftParen) => {
                         // O.o look, macro arguments!
                         let mut args = Vec::new();
@@ -67,6 +89,7 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                                                 let arg_type =
                                                     ArgumentType::from_str(&arg_type_str)
                                                         .ok_or_else(|| LexerError {
+                                                            input: input_str.clone(),
                                                             message: format!(
                                                                 "Invalid argument type: {}",
                                                                 arg_type_str
@@ -81,6 +104,7 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                                             }
                                             _ => {
                                                 return Err(LexerError {
+                                                    input: input_str,
                                                     message: "Expected argument type after colon"
                                                         .to_string(),
 
@@ -91,6 +115,7 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                                         },
                                         _ => {
                                             return Err(LexerError {
+                                                input: input_str,
                                                 message: "Expected colon after argument name"
                                                     .to_string(),
 
@@ -103,6 +128,7 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                                 Ok(TokenKind::RightParen) => break,
                                 _ => {
                                     return Err(LexerError {
+                                        input: input_str,
                                         message: "Invalid macro argument syntax".to_string(),
 
                                         line: span.start,
@@ -136,6 +162,7 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                                         Ok(t) => macro_tokens.push(t),
                                         _ => {
                                             return Err(LexerError {
+                                                input: input_str,
                                                 message: "Invalid token in macro body".to_string(),
 
                                                 line: span.start,
@@ -152,6 +179,7 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                             }
                             _ => {
                                 return Err(LexerError {
+                                    input: input_str,
                                     message: "Expected open brace to start macro body".to_string(),
 
                                     line: span.start,
@@ -162,10 +190,11 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                     }
                     _ => {
                         return Err(LexerError {
+                            input: input_str,
                             message: "Expected open paren after macro name".to_string(),
 
-                            line: span.start,
-                            column: span.end,
+                            line: loc.start,
+                            column: loc.end,
                         });
                     }
                 }
@@ -176,6 +205,7 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
             }
             Err(()) => {
                 return Err(LexerError {
+                    input: input_str,
                     message: "Unexpected token".to_string(),
 
                     line: span.start,
