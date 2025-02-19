@@ -1,15 +1,29 @@
 use logos::Logos;
 use serde::Serialize;
 
+pub enum InstructionArgument {
+    Mem(i64),
+    iMem(i64),
+    Reg(i64),
+    iReg(i64),
+    imm(i64),
+    Ident(String),
+}
+
+pub struct InstructionData {
+    pub name: String,
+    pub args: Vec<InstructionArgument>,
+}
+
 #[derive(Logos, Debug, PartialEq, Serialize)]
 pub enum TokenKind {
     #[token("\n")]
     Newline,
 
-    #[token(" ")]
+    #[token(" ", logos::skip)]
     Whitespace,
 
-    #[token("\t")]
+    #[token("\t", logos::skip)]
     Tab,
 
     #[token("(")]
@@ -206,24 +220,6 @@ fn parse_string(s: &str) -> String {
                 Some('\'') => result.push('\''),
                 Some('"') => result.push('\"'),
                 Some('\\') => result.push('\\'),
-                Some('u') => {
-                    if let Some('{') = chars.next() {
-                        let mut hex_code = String::new();
-                        while let Some(&next) = chars.peek() {
-                            if next == '}' {
-                                chars.next();
-                                break;
-                            }
-                            hex_code.push(next);
-                            chars.next();
-                        }
-                        if let Ok(code) = u32::from_str_radix(&hex_code, 16) {
-                            if let Some(ch) = char::from_u32(code) {
-                                result.push(ch);
-                            }
-                        }
-                    }
-                }
                 _ => panic!("Invalid string escape sequence"),
             }
         } else {

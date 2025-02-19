@@ -44,12 +44,6 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                         column,
                     })?
                     .to_string();
-                while lexer
-                    .peek()
-                    .is_some_and(|t| t.as_ref().is_ok_and(|tok| tok.is_empty()))
-                {
-                    lexer.next();
-                }
                 // start collecting goodies in the macro :3
                 match lexer.next() {
                     Some(Ok(TokenKind::LeftParen)) => {
@@ -66,23 +60,12 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                                 Some(Ok(TokenKind::Ident(arg_name))) => {
                                     // teehee,
                                     // found an argument
-                                    while lexer
-                                        .peek()
-                                        .is_some_and(|t| t.as_ref().is_ok_and(|tok| tok.is_empty()))
-                                    {
-                                        lexer.next();
-                                    }
                                     match lexer.next() {
                                         Some(Ok(TokenKind::Tab))
                                         | Some(Ok(TokenKind::Whitespace)) => {
                                             continue;
                                         }
                                         Some(Ok(TokenKind::Colon)) => {
-                                            while lexer.peek().is_some_and(|t| {
-                                                t.as_ref().is_ok_and(|tok| tok.is_empty())
-                                            }) {
-                                                lexer.next();
-                                            }
                                             match lexer.next() {
                                                 Some(Ok(TokenKind::Tab))
                                                 | Some(Ok(TokenKind::Whitespace)) => {
@@ -134,12 +117,6 @@ pub fn lex(input: &str) -> Result<Vec<TokenKind>, LexerError> {
                                     });
                                 }
                             }
-                        }
-                        while lexer
-                            .peek()
-                            .is_some_and(|t| t.as_ref().is_ok_and(|tok| tok.is_empty()))
-                        {
-                            lexer.next();
                         }
                         match lexer.next() {
                             Some(Ok(TokenKind::Tab)) | Some(Ok(TokenKind::Whitespace)) => {
