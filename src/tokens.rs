@@ -103,16 +103,7 @@ pub enum TokenKind {
     #[regex(r#""([^\\"]|\\.)*""#, |lex| parse_string(lex.slice()))]
     StringLit(String),
 
-    #[regex(r"0[xX][0-9a-fA-F]+", |lex| i64::from_str_radix(&lex.slice()[2..], 16).unwrap())]
-    HexLit(i64),
-
-    #[regex(r"0[bB][01]+", |lex| i64::from_str_radix(&lex.slice()[2..], 2).unwrap())]
-    BinLit(i64),
-
-    #[regex(r"0[oO][0-7]+", |lex| i64::from_str_radix(&lex.slice()[2..], 8).unwrap())]
-    OctLit(i64),
-
-    #[regex(r"[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
+    #[regex(r"(?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|\d+)", |lex| parse_content(lex.slice()))]
     IntLit(i64),
 
     #[regex(r"macro_rules!", |lex| lex.slice().to_string())]
@@ -149,18 +140,31 @@ pub enum TokenKind {
     Imm(i64),
     Expr(i64),
 }
+fn parse_content(content: &str) -> i64 {
+    if content.starts_with("0x") || content.starts_with("0X") {
+        i64::from_str_radix(&content[2..], 16).unwrap()
+    } else if content.starts_with("0b") || content.starts_with("0B") {
+        i64::from_str_radix(&content[2..], 2).unwrap()
+    } else if content.starts_with("0o") || content.starts_with("0O") {
+        i64::from_str_radix(&content[2..], 8).unwrap()
+    } else if content.chars().all(|c| c.is_ascii_digit()) {
+        content.parse::<i64>().unwrap()
+    } else {
+        panic!("poo poo");
+    }
+}
 fn parse_bracketed_content(slice: &str) -> Box<TokenKind> {
     let content = &slice[1..slice.len() - 1];
     if content.starts_with("0x") || content.starts_with("0X") {
-        Box::new(TokenKind::HexLit(
+        Box::new(TokenKind::IntLit(
             i64::from_str_radix(&content[2..], 16).unwrap(),
         ))
     } else if content.starts_with("0b") || content.starts_with("0B") {
-        Box::new(TokenKind::BinLit(
+        Box::new(TokenKind::IntLit(
             i64::from_str_radix(&content[2..], 2).unwrap(),
         ))
     } else if content.starts_with("0o") || content.starts_with("0O") {
-        Box::new(TokenKind::OctLit(
+        Box::new(TokenKind::IntLit(
             i64::from_str_radix(&content[2..], 8).unwrap(),
         ))
     } else if content.chars().all(|c| c.is_ascii_digit()) {

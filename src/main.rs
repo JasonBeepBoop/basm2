@@ -4,7 +4,7 @@ fn main() {
     let input_string = r#"
 
 
-    label: macro_rules!  ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg, arg5 : label ) { 
+    label: macro_rules! name ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg, arg5 : label ) { 
     mov %arg1, %arg2 ; comment
     lea r2, [0xff]
     mov r0, &[0x0]
