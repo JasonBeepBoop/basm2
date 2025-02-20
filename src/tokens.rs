@@ -1,21 +1,6 @@
+use crate::*;
 use logos::Logos;
 use serde::Serialize;
-
-#[derive(Debug, PartialEq, Serialize, Clone)]
-pub enum InstructionArgument {
-    Mem(i64),
-    IMem(i64),
-    Reg(i64),
-    IReg(i64),
-    Imm(i64),
-    Ident(String),
-}
-
-#[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct InstructionData {
-    pub name: String,
-    pub args: Vec<InstructionArgument>,
-}
 
 #[derive(Logos, Debug, Clone, PartialEq, Serialize)]
 pub enum TokenKind {
@@ -34,12 +19,6 @@ pub enum TokenKind {
     #[token(")")]
     RightParen,
 
-    #[token("[")]
-    LeftBracket,
-
-    #[token("]")]
-    RightBracket,
-
     #[token("{")]
     LeftBrace,
 
@@ -48,9 +27,6 @@ pub enum TokenKind {
 
     #[token(",")]
     Comma,
-
-    #[token(".")]
-    Dot,
 
     #[token("~")]
     Tilde,
@@ -145,8 +121,14 @@ pub enum TokenKind {
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
     Ident(String),
 
+    #[regex(r"\.[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
+    Directive(String),
+
     #[regex("%[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice()[1..].to_string())]
     MacroIdent(String),
+
+    #[regex("%[a-zA-Z_][a-zA-Z0-9_]*:", |lex| lex.slice()[1..].to_string())]
+    MacroLabel(String),
 
     #[regex(";.*", logos::skip)]
     Comment,
@@ -154,40 +136,37 @@ pub enum TokenKind {
     Macro(MacroContent),
 
     Instruction(InstructionData),
-}
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct MacroContent {
-    pub name: String,
-    pub args: Vec<FullArgument>,
-    pub tokens: Vec<TokenKind>,
-}
+    Label(String),
+    #[regex(r"\[([^\]]+)\]", |lex| parse_bracketed_content(lex.slice()))]
+    Mem(Box<TokenKind>),
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct FullArgument {
-    pub name: String,
-    pub arg_type: ArgumentType,
-}
+    #[regex(r"&\[([^\]]+)\]", |lex| parse_bracketed_content(&lex.slice()[1..]))]
+    IMem(Box<TokenKind>),
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
-pub enum ArgumentType {
-    Mem,
-    Imem,
-    Ireg,
-    Imm,
-    Reg,
+    IIdent(String),
+    IReg(u8),
+    Imm(i64),
+    Expr(i64),
 }
-
-impl ArgumentType {
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "mem" => Some(ArgumentType::Mem),
-            "imem" => Some(ArgumentType::Imem),
-            "ireg" => Some(ArgumentType::Ireg),
-            "imm" => Some(ArgumentType::Imm),
-            "reg" => Some(ArgumentType::Reg),
-            _ => None,
-        }
+fn parse_bracketed_content(slice: &str) -> Box<TokenKind> {
+    let content = &slice[1..slice.len() - 1];
+    if content.starts_with("0x") || content.starts_with("0X") {
+        Box::new(TokenKind::HexLit(
+            i64::from_str_radix(&content[2..], 16).unwrap(),
+        ))
+    } else if content.starts_with("0b") || content.starts_with("0B") {
+        Box::new(TokenKind::BinLit(
+            i64::from_str_radix(&content[2..], 2).unwrap(),
+        ))
+    } else if content.starts_with("0o") || content.starts_with("0O") {
+        Box::new(TokenKind::OctLit(
+            i64::from_str_radix(&content[2..], 8).unwrap(),
+        ))
+    } else if content.chars().all(|c| c.is_ascii_digit()) {
+        Box::new(TokenKind::IntLit(content.parse::<i64>().unwrap()))
+    } else {
+        Box::new(TokenKind::Ident(slice.to_string()))
     }
 }
 impl TokenKind {
