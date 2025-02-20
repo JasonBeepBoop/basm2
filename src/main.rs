@@ -10,11 +10,13 @@ fn main() {
     mov r0, &[0x0]
     label_again: .asciiz "My text"
     .word 'm'
+    nand r4, (2 * 2)
     nand r3, r3
     push 0x8
     pop 0o02
     %arg5:
 }
+    mov r0, (33 + 3)
 "#;
     println!("{input_string}");
     let mut parser = Parser::new(String::from("input.asm"), input_string);

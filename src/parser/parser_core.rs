@@ -15,7 +15,7 @@ impl<'a> Parser<'a> {
         let errors = Vec::new();
         let lexer = TokenKind::lexer(input).spanned();
 
-        let first_pass_tokens = Self::first_pass(lexer);
+        let first_pass_tokens = Self::first_pass(input.to_string(), lexer);
         let second_pass_tokens = Self::second_pass(
             &mut Parser {
                 file: file.to_string(),

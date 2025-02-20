@@ -1,6 +1,8 @@
+use crate::evaluate::evaluate_expression;
 use crate::*;
 impl<'a> Parser<'a> {
     pub fn first_pass(
+        input: String,
         lexer: logos::SpannedIter<'a, TokenKind>,
     ) -> Vec<(Result<TokenKind, ()>, std::ops::Range<usize>)> {
         let mut tokens = Vec::new();
@@ -22,6 +24,46 @@ impl<'a> Parser<'a> {
                         tokens.push((Ok(TokenKind::Ident(ident)), span));
                     }
                 }
+                Ok(TokenKind::LeftParen) => 'lpn: {
+                    let mut peek_iter = lexer.clone();
+                    while let Some((peek_token, _)) = peek_iter.peek() {
+                        match peek_token {
+                            Ok(TokenKind::Newline) => break,
+                            Ok(TokenKind::Colon) | Ok(TokenKind::LeftBrace) => {
+                                tokens.push((Ok(TokenKind::LeftParen), span));
+                                break 'lpn;
+                            }
+                            _ => {
+                                peek_iter.next();
+                            }
+                        }
+                    }
+
+                    while let Some((token, _)) = lexer.peek() {
+                        match token {
+                            Ok(TokenKind::Comma) => {
+                                lexer.next();
+                            }
+                            Ok(TokenKind::Newline) => {
+                                break 'lpn;
+                            }
+                            Ok(_) => {
+                                match evaluate_expression(input.to_string(), &mut lexer) {
+                                    Ok(v) => tokens.push((Ok(TokenKind::IntLit(v)), span.clone())),
+                                    Err(e) => {
+                                        println!("{e:?}");
+                                        panic!(); // :3 nothing will go wrong
+                                    }
+                                }
+                                lexer.next();
+                            }
+                            _ => {
+                                lexer.next();
+                            }
+                        }
+                    }
+                }
+
                 _ => {
                     tokens.push((token, span));
                 }
