@@ -2,6 +2,7 @@ use crate::evaluate::evaluate_expression;
 use crate::*;
 impl<'a> Parser<'a> {
     pub fn first_pass(
+        file: String,
         input: String,
         lexer: logos::SpannedIter<'a, TokenKind>,
     ) -> Vec<(Result<TokenKind, ()>, std::ops::Range<usize>)> {
@@ -44,7 +45,7 @@ impl<'a> Parser<'a> {
                                 break 'lpn;
                             }
                             Ok(_) => {
-                                match evaluate_expression(input.to_string(), &mut lexer) {
+                                match evaluate_expression(&file, input.to_string(), &mut lexer) {
                                     Ok(v) => tokens.push((Ok(TokenKind::IntLit(v)), span.clone())),
                                     Err(e) => {
                                         println!("{e:?}");

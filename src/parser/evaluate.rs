@@ -1,7 +1,11 @@
 use crate::*;
 use std::iter::Peekable;
 type Evalex<'a> = Peekable<logos::SpannedIter<'a, tokens::TokenKind>>;
-pub fn evaluate_expression(input: String, token_iter: &mut Evalex) -> Result<i64, ParserError> {
+pub fn evaluate_expression(
+    file: &String,
+    input: String,
+    token_iter: &mut Evalex,
+) -> Result<i64, ParserError> {
     let mut result = 0;
     while let Some((token, l)) = token_iter.peek() {
         match token {
@@ -57,6 +61,8 @@ pub fn evaluate_expression(input: String, token_iter: &mut Evalex) -> Result<i64
             }
             _ => {
                 return Err(ParserError {
+                    file: file.to_string(),
+                    help: None,
                     input: input.to_string(),
                     message: "the math expression appears invalid".to_string(),
                     start_pos: l.start,

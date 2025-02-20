@@ -16,6 +16,8 @@ impl Parser<'_> {
                 let mut leave = false;
                 let arg_type = ArgumentType::from_string(&arg_type_str).unwrap_or_else(|| {
                     self.errors.push(ParserError {
+                        file: self.file.to_string(),
+                        help: Some(String::from("valid argument types are\n         reg, ireg, mem, imem, imm, and label")),
                         input: input_str,
                         message: format!("argument type: {} is not valid", arg_type_str),
                         start_pos: loc.start,
@@ -37,6 +39,8 @@ impl Parser<'_> {
             }
             _ => {
                 self.errors.push(ParserError {
+                    file: self.file.to_string(),
+                    help: Some(String::from("add a type after the ':'")),
                     input: input_str,
                     message: "expected argument type".to_string(),
                     start_pos: loc.start,
@@ -67,6 +71,10 @@ impl Parser<'_> {
                 Ok(TokenKind::RightParen) => break,
                 _ => {
                     self.errors.push(ParserError {
+                        file: self.file.to_string(),
+                        help: Some(String::from(
+                            "macro arguments should go between the '(' ')'",
+                        )),
                         input: self.input.to_string(),
                         message: "expected a macro argument".to_string(),
                         start_pos: l.start,
@@ -97,6 +105,8 @@ impl Parser<'_> {
                         Ok(t) => macro_tokens.push((t, span)),
                         _ => {
                             self.errors.push(ParserError {
+                                file: self.file.to_string(),
+                                help: Some(String::from("close the macro with a '}'")),
                                 input: self.input.to_string(),
                                 message: "error/reached EOF in macro body".to_string(),
                                 start_pos: span.start,
@@ -116,6 +126,8 @@ impl Parser<'_> {
             }
             _ => {
                 self.errors.push(ParserError {
+                    file: self.file.to_string(),
+                    help: None,
                     input: input_str,
                     message: "did not find open brace for macro body".to_string(),
                     start_pos: loc.start,
@@ -137,6 +149,8 @@ impl Parser<'_> {
             v
         } else {
             self.errors.push(ParserError {
+                file: self.file.to_string(),
+                help: Some(String::from("add a macro name after the declaration")),
                 input: input_str,
                 message: "macro name required".to_string(),
                 start_pos: loc.start,
@@ -155,6 +169,8 @@ impl Parser<'_> {
             }
             _ => {
                 self.errors.push(ParserError {
+                    file: self.file.to_string(),
+                    help: None,
                     input: input_str,
                     message: "didn't find open parantheses after macro name".to_string(),
                     start_pos: loc.start,

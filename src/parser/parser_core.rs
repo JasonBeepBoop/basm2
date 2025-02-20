@@ -15,7 +15,7 @@ impl<'a> Parser<'a> {
         let errors = Vec::new();
         let lexer = TokenKind::lexer(input).spanned();
 
-        let first_pass_tokens = Self::first_pass(input.to_string(), lexer);
+        let first_pass_tokens = Self::first_pass(file.to_string(), input.to_string(), lexer);
         let second_pass_tokens = Self::second_pass(
             &mut Parser {
                 file: file.to_string(),
@@ -25,7 +25,6 @@ impl<'a> Parser<'a> {
             },
             first_pass_tokens,
         );
-        println!("{second_pass_tokens:?}");
         Parser {
             file,
             lexer: second_pass_tokens.into_iter().peekable(),
@@ -45,6 +44,10 @@ impl<'a> Parser<'a> {
                 }
                 Err(()) => {
                     self.errors.push(ParserError {
+                        file: self.file.to_string(),
+                        help: Some(String::from(
+                            "this is likely an internal error, please report it",
+                        )),
                         input: self.input.to_string(),
                         message: "Unknown error encountered whilst parsing".to_string(),
                         start_pos: span.start,

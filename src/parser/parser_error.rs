@@ -5,6 +5,8 @@ use std::fmt;
 pub struct ParserError {
     pub input: String,
     pub message: String,
+    pub help: Option<String>,
+    pub file: String,
     pub start_pos: usize, // Start index of the error in the input string
     pub last_pos: usize,  // End index of the error in the input string
 }
@@ -46,16 +48,46 @@ impl fmt::Display for ParserError {
                 };
                 writeln!(
                     f,
-                    "{}: {} at indices {}:{}",
-                    "error".bright_red(),
-                    self.message.bold(),
-                    line_number + 1,
-                    error_start,
+                    "{}: {}",
+                    "error".bright_red().underline(),
+                    self.message.bold()
                 )?;
-                writeln!(f, "{}", line)?;
-                let spaces = " ".repeat(error_start);
+                let left_char = if self.help.is_some() { "├" } else { "╰" };
+                writeln!(
+                    f,
+                    "{} {}:{}:{}",
+                    left_char.bright_red(),
+                    self.file.green(),
+                    line_number + 1,
+                    error_start
+                )?;
+                let left_char = if self.help.is_some() { "│" } else { " " };
+                writeln!(
+                    f,
+                    "{}{:^6} {} {}",
+                    left_char.bright_red(),
+                    (line_number + 1).to_string().blue(),
+                    "│".blue(),
+                    line
+                )?;
+                let spaces = " ".repeat(error_start + 9);
                 let arrows = "^".repeat(error_end.saturating_sub(error_start));
-                write!(f, "{}{}", spaces, arrows.bright_red())?;
+                write!(
+                    f,
+                    "{}{}{}",
+                    left_char.bright_red(),
+                    spaces,
+                    arrows.bright_red()
+                )?;
+                if let Some(s) = &self.help {
+                    writeln!(
+                        f,
+                        "\n{}{} {}: {s}",
+                        "╰".bright_red(),
+                        ">".yellow(),
+                        "help".yellow()
+                    )?;
+                }
             }
         }
 
