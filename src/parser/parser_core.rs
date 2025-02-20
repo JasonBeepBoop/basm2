@@ -25,6 +25,7 @@ impl<'a> Parser<'a> {
             },
             first_pass_tokens,
         );
+        println!("{second_pass_tokens:?}");
         Parser {
             file,
             lexer: second_pass_tokens.into_iter().peekable(),

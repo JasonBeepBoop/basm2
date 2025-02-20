@@ -109,6 +109,9 @@ pub enum TokenKind {
     #[regex(r"macro_rules!", |lex| lex.slice().to_string())]
     MacroDef(String),
 
+    #[regex("const[ ][a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice()[6..].to_string())]
+    Constant(String),
+
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
     Ident(String),
 

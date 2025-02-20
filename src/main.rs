@@ -3,7 +3,7 @@ use basm2::*;
 fn main() {
     let input_string = r#"
 
-
+    const v = 3
     label: macro_rules! name ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg, arg5 : label ) { 
     mov %arg1, %arg2 ; comment
     lea r2, [0xff]
@@ -21,7 +21,7 @@ fn main() {
     push (3 << 1)
 "#;
     println!("{input_string}");
-    let mut parser = Parser::new(String::from("input.asm"), input_string);
+    let mut parser = Parser::new(String::from("input.asm"), "const v = 3");
     match parser.parse() {
         Ok(tokens) => {
             println!("{}", serde_json::to_string_pretty(&tokens).unwrap());

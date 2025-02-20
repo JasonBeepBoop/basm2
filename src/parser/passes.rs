@@ -19,6 +19,7 @@ impl<'a> Parser<'a> {
                         tokens.push((Ok(TokenKind::Ident(ident)), span));
                     }
                 }
+
                 Ok(TokenKind::LeftParen) => 'lpn: {
                     let mut peek_iter = lexer.clone();
                     while let Some((peek_token, _)) = peek_iter.peek() {
