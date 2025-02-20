@@ -100,7 +100,7 @@ impl<'a> Parser<'a> {
                         new_tokens.push((Ok(TokenKind::Ident(name)), span));
                     } else {
                         let mut args = Vec::new();
-                        while let Some((token, _)) = token_iter.peek() {
+                        while let Some((token, loc)) = token_iter.peek() {
                             match token {
                                 Ok(TokenKind::Comma) => {
                                     token_iter.next();
@@ -109,7 +109,7 @@ impl<'a> Parser<'a> {
                                     break;
                                 }
                                 Ok(t) => {
-                                    args.push(self.parse_argument(t.clone()));
+                                    args.push((self.parse_argument(t.clone()), loc.clone()));
                                     token_iter.next();
                                 }
                                 _ => {

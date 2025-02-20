@@ -21,7 +21,7 @@ fn main() {
     push (3 << 1)
 "#;
     println!("{input_string}");
-    let mut parser = Parser::new(String::from("input.asm"), "const v = 3");
+    let mut parser = Parser::new(String::from("input.asm"), input_string);
     match parser.parse() {
         Ok(tokens) => {
             println!("{}", serde_json::to_string_pretty(&tokens).unwrap());

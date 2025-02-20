@@ -1,7 +1,10 @@
 use crate::*;
 
 impl Parser<'_> {
-    fn parse_single_macro_argument(&mut self, arg_name: String) -> Vec<FullArgument> {
+    fn parse_single_macro_argument(
+        &mut self,
+        arg_name: String,
+    ) -> Vec<(FullArgument, std::ops::Range<usize>)> {
         let input_str = self.input.to_string();
         let (val, loc) = match self.lexer.next() {
             Some((v, l)) => (v, l),
@@ -24,10 +27,13 @@ impl Parser<'_> {
                 if leave {
                     return args;
                 }
-                args.push(FullArgument {
-                    name: arg_name.to_string(),
-                    arg_type,
-                });
+                args.push((
+                    FullArgument {
+                        name: arg_name.to_string(),
+                        arg_type,
+                    },
+                    loc,
+                ));
             }
             _ => {
                 self.errors.push(ParserError {
@@ -42,7 +48,7 @@ impl Parser<'_> {
         args
     }
 
-    fn parse_macro_arguments(&mut self, name: String) -> Vec<TokenKind> {
+    fn parse_macro_arguments(&mut self, name: String) -> Vec<(TokenKind, std::ops::Range<usize>)> {
         let input_str = self.input.to_string();
         let mut tokens = Vec::new();
         let mut args = Vec::new();
@@ -88,7 +94,7 @@ impl Parser<'_> {
                                 break;
                             }
                         }
-                        Ok(t) => macro_tokens.push(t),
+                        Ok(t) => macro_tokens.push((t, span)),
                         _ => {
                             self.errors.push(ParserError {
                                 input: self.input.to_string(),
@@ -99,11 +105,14 @@ impl Parser<'_> {
                         }
                     }
                 }
-                tokens.push(TokenKind::Macro(MacroContent {
-                    name,
-                    args,
-                    tokens: macro_tokens,
-                }));
+                tokens.push((
+                    TokenKind::Macro(MacroContent {
+                        name,
+                        args,
+                        tokens: macro_tokens,
+                    }),
+                    loc,
+                ));
             }
             _ => {
                 self.errors.push(ParserError {
@@ -117,7 +126,7 @@ impl Parser<'_> {
         tokens
     }
 
-    pub fn parse_single_macro(&mut self) -> Vec<TokenKind> {
+    pub fn parse_single_macro(&mut self) -> Vec<(TokenKind, std::ops::Range<usize>)> {
         let input_str = self.input.to_string();
         let mut tokens = Vec::new();
         let (val, loc) = match self.lexer.next() {

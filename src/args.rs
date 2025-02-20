@@ -4,8 +4,8 @@ use serde::Serialize;
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct MacroContent {
     pub name: String,
-    pub args: Vec<FullArgument>,
-    pub tokens: Vec<TokenKind>,
+    pub args: Vec<(FullArgument, std::ops::Range<usize>)>,
+    pub tokens: Vec<(TokenKind, std::ops::Range<usize>)>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -52,5 +52,5 @@ pub enum InstructionArgument {
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct InstructionData {
     pub name: String,
-    pub args: Vec<InstructionArgument>,
+    pub args: Vec<(InstructionArgument, std::ops::Range<usize>)>,
 }
