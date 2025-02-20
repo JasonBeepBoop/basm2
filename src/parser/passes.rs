@@ -12,14 +12,9 @@ impl<'a> Parser<'a> {
             match token {
                 Ok(TokenKind::Ident(ident)) => {
                     if let Some((Ok(TokenKind::Colon), _)) = lexer.peek() {
-                        let (_, colon_span) = lexer.next().unwrap();
+                        let (_, _) = lexer.next().unwrap();
 
-                        if let Some((Ok(TokenKind::Ident(_)), _)) = lexer.peek() {
-                            tokens.push((Ok(TokenKind::Ident(ident)), span));
-                            tokens.push((Ok(TokenKind::Colon), colon_span));
-                        } else {
-                            tokens.push((Ok(TokenKind::Label(ident)), span));
-                        }
+                        tokens.push((Ok(TokenKind::Label(ident)), span));
                     } else {
                         tokens.push((Ok(TokenKind::Ident(ident)), span));
                     }

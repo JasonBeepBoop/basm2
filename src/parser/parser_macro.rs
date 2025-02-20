@@ -9,46 +9,25 @@ impl Parser<'_> {
         };
         let mut args = Vec::new();
         match val {
-            Ok(TokenKind::Colon) => {
-                let (val, loc) = match self.lexer.next() {
-                    Some((v, l)) => (v, l),
-                    None => return args,
-                };
-                match val {
-                    Ok(TokenKind::Ident(arg_type_str)) => {
-                        let mut leave = false;
-                        let arg_type =
-                            ArgumentType::from_string(&arg_type_str).unwrap_or_else(|| {
-                                self.errors.push(ParserError {
-                                    input: input_str,
-                                    message: format!(
-                                        "argument type: {} is not valid",
-                                        arg_type_str
-                                    ),
-                                    start_pos: loc.start,
-                                    last_pos: loc.end,
-                                });
-                                leave = true;
-                                ArgumentType::Reg
-                            });
-                        if leave {
-                            return args;
-                        }
-                        args.push(FullArgument {
-                            name: arg_name.to_string(),
-                            arg_type,
-                        });
-                    }
-                    _ => {
-                        self.errors.push(ParserError {
-                            input: input_str,
-                            message: "this is not a macro argument".to_string(),
-                            start_pos: loc.start,
-                            last_pos: loc.end,
-                        });
-                        return args;
-                    }
+            Ok(TokenKind::Ident(arg_type_str)) => {
+                let mut leave = false;
+                let arg_type = ArgumentType::from_string(&arg_type_str).unwrap_or_else(|| {
+                    self.errors.push(ParserError {
+                        input: input_str,
+                        message: format!("argument type: {} is not valid", arg_type_str),
+                        start_pos: loc.start,
+                        last_pos: loc.end,
+                    });
+                    leave = true;
+                    ArgumentType::Reg
+                });
+                if leave {
+                    return args;
                 }
+                args.push(FullArgument {
+                    name: arg_name.to_string(),
+                    arg_type,
+                });
             }
             _ => {
                 self.errors.push(ParserError {
@@ -76,7 +55,7 @@ impl Parser<'_> {
                 Ok(TokenKind::Comma) => {
                     continue;
                 }
-                Ok(TokenKind::Ident(arg_name)) => {
+                Ok(TokenKind::Label(arg_name)) => {
                     args.extend(self.parse_single_macro_argument(arg_name));
                 }
                 Ok(TokenKind::RightParen) => break,
