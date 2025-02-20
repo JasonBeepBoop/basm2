@@ -19,10 +19,28 @@ pub fn evaluate_expression(input: String, token_iter: &mut Evalex) -> Result<i64
                     token_iter.next();
                 }
             }
+            Ok(TokenKind::PlusPlus) => {
+                token_iter.next();
+                result += 1;
+            }
             Ok(TokenKind::Star) => {
                 token_iter.next();
                 if let Some((Ok(TokenKind::IntLit(num)), _)) = token_iter.peek() {
                     result *= num;
+                    token_iter.next();
+                }
+            }
+            Ok(TokenKind::GreaterGreater) => {
+                token_iter.next();
+                if let Some((Ok(TokenKind::IntLit(num)), _)) = token_iter.peek() {
+                    result >>= num;
+                    token_iter.next();
+                }
+            }
+            Ok(TokenKind::LessLess) => {
+                token_iter.next();
+                if let Some((Ok(TokenKind::IntLit(num)), _)) = token_iter.peek() {
+                    result <<= num;
                     token_iter.next();
                 }
             }
@@ -33,10 +51,14 @@ pub fn evaluate_expression(input: String, token_iter: &mut Evalex) -> Result<i64
                     token_iter.next();
                 }
             }
+            Ok(TokenKind::MinusMinus) => {
+                token_iter.next();
+                result -= 1;
+            }
             _ => {
                 return Err(ParserError {
                     input: input.to_string(),
-                    message: "Invalid expression".to_string(),
+                    message: "the math expression appears invalid".to_string(),
                     start_pos: l.start,
                     last_pos: l.end,
                 });

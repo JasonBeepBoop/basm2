@@ -17,12 +17,14 @@ fn main() {
     %arg5:
 }
     mov r0, (33 + 3)
+
+    push (3 << 1)
 "#;
     println!("{input_string}");
     let mut parser = Parser::new(String::from("input.asm"), input_string);
     match parser.parse() {
         Ok(tokens) => {
-            println!("{}", serde_json::to_string(&tokens).unwrap());
+            println!("{}", serde_json::to_string_pretty(&tokens).unwrap());
         }
         Err(e) => {
             for error in e {
