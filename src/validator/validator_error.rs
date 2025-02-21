@@ -43,14 +43,14 @@ impl fmt::Display for MacroValidatorError<'_> {
             self.orig_pos.clone(),
             lines,
         )?;
+        write!(f, "{}", "╮".bright_red())?;
         print_err_and_line(
             f,
             9,
             "",
             self.err_input.to_string(),
             format!(
-                "{} in expansion of macro \"{}\"",
-                "╮".bright_red(),
+                " in expansion of macro \"{}\"",
                 self.mac.name
             ),
             &self.help,

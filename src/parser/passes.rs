@@ -65,6 +65,28 @@ impl<'a> Parser<'a> {
                     }
                     prev_was_const = false;
                 }
+                Ok(TokenKind::IntLit(v)) => {
+                    if prev_was_const {
+                        if let Some(n) = const_names.pop() {
+                            let mut vmap = VARIABLE_MAP.lock().unwrap();
+                            vmap.insert(n, (file.to_string(), span, v));
+                            std::mem::drop(vmap);
+                        } else {
+                            errors.push(ParserError {
+                                file: file.to_string(),
+                                help: None,
+                                input: input.to_string(),
+                                message: String::from(
+                                    "could not find associated constant for literal",
+                                ),
+                                start_pos: span.start,
+                                last_pos: span.end,
+                            });
+                        }
+                    } else {
+                        tokens.push((Ok(TokenKind::IntLit(v)), span));
+                    }
+                }
                 Ok(TokenKind::LeftParen) => 'lpn: {
                     match parse_expression_after_left_paren(&file, input.to_string(), &mut lexer) {
                         Ok(Some((value, new_span))) => {
@@ -79,7 +101,7 @@ impl<'a> Parser<'a> {
                                         help: None,
                                         input: input.to_string(),
                                         message: String::from(
-                                            "could not find associated constant value",
+                                            "could not find associated constant name",
                                         ),
                                         start_pos: new_span.start,
                                         last_pos: new_span.end,

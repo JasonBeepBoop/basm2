@@ -24,10 +24,11 @@ label: macro_rules! fanf ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg, arg5
     let input_string_2 = r#"
 
 const v = (4 * 3)
-label: macro_rules! fanf ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg, arg5 : label ) { 
     mov r0, (v + 2)
-}
-fanf!(r0, 2, [0xff], &r3, data)
+    const a = 5
+    const b = 3
+    const c = ((a * a) + (b * b))
+    mov r0, (c)
 "#;
     println!("{input_string_2}");
     let my_macaroni = MacroContent {
