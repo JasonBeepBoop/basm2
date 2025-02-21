@@ -2,7 +2,9 @@ use crate::*;
 use logos::Logos;
 use std::iter::Peekable;
 use std::vec::IntoIter;
+
 type ParsingLexer = Peekable<IntoIter<(Result<TokenKind, ()>, std::ops::Range<usize>)>>;
+
 pub struct Parser<'a> {
     pub file: String,
     pub lexer: ParsingLexer,
@@ -11,26 +13,30 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(file: String, input: &'a str) -> Self {
+    pub fn new(file: String, input: &'a str) -> Result<Self, Vec<ParserError>> {
         let errors = Vec::new();
         let lexer = TokenKind::lexer(input).spanned();
 
         let first_pass_tokens = Self::first_pass(file.to_string(), input.to_string(), lexer);
+        let toks = match first_pass_tokens {
+            Err(e) => return Err(e),
+            Ok(ref v) => v,
+        };
         let second_pass_tokens = Self::second_pass(
             &mut Parser {
                 file: file.to_string(),
-                lexer: first_pass_tokens.clone().into_iter().peekable(),
+                lexer: toks.clone().into_iter().peekable(),
                 input,
                 errors: Vec::new(),
             },
-            first_pass_tokens,
+            first_pass_tokens?,
         );
-        Parser {
+        Ok(Parser {
             file,
             lexer: second_pass_tokens.into_iter().peekable(),
             input,
             errors,
-        }
+        })
     }
     pub fn parse(&mut self) -> Result<Vec<(TokenKind, std::ops::Range<usize>)>, &Vec<ParserError>> {
         let mut tokens = Vec::new();

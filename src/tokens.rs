@@ -109,7 +109,7 @@ pub enum TokenKind {
     #[regex(r"macro_rules!", |lex| lex.slice().to_string())]
     MacroDef(String),
 
-    #[regex("const[ ][a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice()[6..].to_string())]
+    #[regex("const[ ][a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice()[6..].trim().to_string())]
     Constant(String),
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
@@ -121,7 +121,7 @@ pub enum TokenKind {
     #[regex("%[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice()[1..].to_string())]
     MacroIdent(String),
 
-    #[regex("%[a-zA-Z_][a-zA-Z0-9_]*:", |lex| lex.slice()[1..].to_string())]
+    #[regex("%[a-zA-Z_][a-zA-Z0-9_]*:", |lex| lex.slice()[1..lex.slice().len() - 1].to_string())]
     MacroLabel(String),
 
     #[regex(";.*", logos::skip)]
@@ -173,7 +173,7 @@ fn parse_bracketed_content(slice: &str) -> Box<TokenKind> {
     } else if content.chars().all(|c| c.is_ascii_digit()) {
         Box::new(TokenKind::IntLit(content.parse::<i64>().unwrap()))
     } else {
-        Box::new(TokenKind::Ident(slice.to_string()))
+        Box::new(TokenKind::Ident(slice[1..slice.len() - 1].to_string()))
     }
 }
 impl TokenKind {

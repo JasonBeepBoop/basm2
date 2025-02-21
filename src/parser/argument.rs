@@ -1,16 +1,16 @@
 use crate::*;
 impl Parser<'_> {
-    pub fn parse_argument(&self, token: TokenKind) -> InstructionArgument {
+    pub fn parse_argument(&self, token: TokenKind) -> Option<InstructionArgument> {
         match token {
-            TokenKind::Mem(inner) => InstructionArgument::Mem(inner),
-            TokenKind::Imm(num) | TokenKind::IntLit(num) => InstructionArgument::Imm(num),
-            TokenKind::IReg(reg) => InstructionArgument::IReg(reg),
-            TokenKind::Register(reg) => InstructionArgument::Reg(reg),
-            TokenKind::IMem(inner) => InstructionArgument::IMem(inner),
-            TokenKind::Ident(ident) => InstructionArgument::Ident(ident),
-            TokenKind::MacroIdent(ident) => InstructionArgument::MacroIdent(ident),
-            TokenKind::Expr(num) => InstructionArgument::Imm(num),
-            _ => InstructionArgument::Imm(0),
+            TokenKind::Mem(inner) => Some(InstructionArgument::Mem(inner)),
+            TokenKind::Imm(num) | TokenKind::IntLit(num) => Some(InstructionArgument::Imm(num)),
+            TokenKind::IReg(reg) => Some(InstructionArgument::IReg(reg)),
+            TokenKind::Register(reg) => Some(InstructionArgument::Reg(reg)),
+            TokenKind::IMem(inner) => Some(InstructionArgument::IMem(inner)),
+            TokenKind::Ident(ident) => Some(InstructionArgument::Ident(ident)),
+            TokenKind::MacroIdent(ident) => Some(InstructionArgument::MacroIdent(ident)),
+            TokenKind::Expr(num) => Some(InstructionArgument::Imm(num)),
+            _ => None,
         }
     }
 }

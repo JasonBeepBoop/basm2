@@ -1,7 +1,8 @@
 use colored::*;
 use std::fmt;
+use term_size::dimensions;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParserError {
     pub input: String,
     pub message: String,
@@ -23,7 +24,10 @@ impl fmt::Display for ParserError {
                 self.start_pos, self.last_pos
             );
         }
+
         let lines: Vec<&str> = self.input.lines().collect();
+        let terminal_width = dimensions().map(|(w, _)| w).unwrap_or(80);
+
         for (line_number, line) in lines.iter().enumerate() {
             let line_start = self
                 .input
@@ -46,39 +50,72 @@ impl fmt::Display for ParserError {
                 } else {
                     line.len()
                 };
+
                 writeln!(
                     f,
                     "{}: {}",
                     "error".bright_red().underline(),
                     self.message.bold()
                 )?;
+
                 let left_char = if self.help.is_some() { "├" } else { "╰" };
                 writeln!(
                     f,
-                    "{} {}:{}:{}",
+                    "{}{} {}:{}:{}",
                     left_char.bright_red(),
+                    "─".bright_red(),
                     self.file.green(),
                     line_number + 1,
                     error_start
                 )?;
+
+                let leading_spaces = line.chars().take_while(|&c| c == ' ').count();
                 let left_char = if self.help.is_some() { "│" } else { " " };
-                writeln!(
-                    f,
-                    "{}{:^6} {} {}",
-                    left_char.bright_red(),
-                    (line_number + 1).to_string().blue(),
-                    "│".blue(),
-                    line
-                )?;
-                let spaces = " ".repeat(error_start + 9);
-                let arrows = "^".repeat(error_end.saturating_sub(error_start));
-                write!(
-                    f,
-                    "{}{}{}",
-                    left_char.bright_red(),
-                    spaces,
-                    arrows.bright_red()
-                )?;
+
+                if line.len() + 9 > terminal_width {
+                    let start = error_start.saturating_sub(terminal_width / 2 - 7);
+                    let end = (error_end + terminal_width / 2 - 7).min(line.len());
+                    let truncated_line = &line[start..end];
+
+                    writeln!(
+                        f,
+                        "{}{:^6} {} {}",
+                        left_char.bright_red(),
+                        (line_number + 1).to_string().blue(),
+                        "│".blue(),
+                        truncated_line.trim()
+                    )?;
+
+                    let spaces = " ".repeat(error_start - start + 9 - leading_spaces);
+                    let arrows = "^".repeat(error_end.saturating_sub(error_start));
+                    write!(
+                        f,
+                        "{}{}{}",
+                        left_char.bright_red(),
+                        spaces,
+                        arrows.bright_red()
+                    )?;
+                } else {
+                    writeln!(
+                        f,
+                        "{}{:^6} {} {}",
+                        left_char.bright_red(),
+                        (line_number + 1).to_string().blue(),
+                        "│".blue(),
+                        line.trim()
+                    )?;
+
+                    let spaces = " ".repeat(error_start + 9 - leading_spaces);
+                    let arrows = "^".repeat(error_end.saturating_sub(error_start));
+                    write!(
+                        f,
+                        "{}{}{}",
+                        left_char.bright_red(),
+                        spaces,
+                        arrows.bright_red()
+                    )?;
+                }
+
                 if let Some(s) = &self.help {
                     writeln!(
                         f,

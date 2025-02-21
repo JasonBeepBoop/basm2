@@ -102,6 +102,16 @@ impl Parser<'_> {
                                 break;
                             }
                         }
+                        Ok(TokenKind::MacroDef(_)) => {
+                            self.errors.push(ParserError {
+                                file: self.file.to_string(),
+                                help: None,
+                                input: self.input.to_string(),
+                                message: "cannot declare macro in macro".to_string(),
+                                start_pos: span.start,
+                                last_pos: span.end,
+                            });
+                        }
                         Ok(t) => macro_tokens.push((t, span)),
                         _ => {
                             self.errors.push(ParserError {
