@@ -16,7 +16,6 @@ label: macro_rules! fanf ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg, arg5
 
     push (3 << 1)
 
-    add r0, ( 2 & ( 6 * 3 ) + (3 + 3) * 5)
     add r0, (3 & 4)
     hlt
 
@@ -27,6 +26,7 @@ const v = (4 * 3)
     mov r0, (v + 2)
     const a = 5
     const b = 3
+    ;add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 2) & 33) + (( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 2) & 33))
     const c = ((a * a) + (b * b))
     mov r0, (c)
 "#;

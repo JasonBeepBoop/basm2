@@ -119,6 +119,9 @@ impl<'a> Parser<'a> {
                             errors.push(e);
                         }
                     }
+                    if let Some((Ok(TokenKind::RightParen), _)) = lexer.peek() {
+                        lexer.next();
+                    }
                 }
                 _ => {
                     tokens.push((token, span));

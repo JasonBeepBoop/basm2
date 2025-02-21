@@ -49,10 +49,7 @@ impl fmt::Display for MacroValidatorError<'_> {
             9,
             "",
             self.err_input.to_string(),
-            format!(
-                " in expansion of macro \"{}\"",
-                self.mac.name
-            ),
+            format!(" in expansion of macro \"{}\"", self.mac.name),
             &self.help,
             self.mac.file.to_string(),
             m_pos,

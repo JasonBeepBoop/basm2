@@ -97,5 +97,7 @@ pub fn evaluate_expression(
     token_iter: &mut Evalex,
 ) -> Result<i64, ParserError> {
     let expr = parse_expression(file.to_string(), input, token_iter)?;
+    println!("{}", expr.evaluate());
+    println!("{expr}");
     Ok(expr.evaluate())
 }
