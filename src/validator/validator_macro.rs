@@ -1,10 +1,19 @@
 use crate::*;
 impl MacroContent {
-    pub fn is_valid(&self, toks: Vec<(TokenKind, std::ops::Range<usize>)>) -> bool {
+    pub fn is_valid(
+        &self,
+        orig_data: String,
+        toks: Vec<(TokenKind, std::ops::Range<usize>)>,
+    ) -> Result<(), MacroValidatorError> {
         // okay... here, I need to check first if the token types of the input
         // match the tokens inside of the macro.
         // what I can do, is I can iterate through the input tokens, and iterate through the arguments
         let mut parsed_toks = Vec::new();
+        let m_pos = if let Some((_, v)) = self.args.first() {
+            v.clone()
+        } else {
+            0..0
+        };
         for (token, span) in toks {
             // this loop will clean up the toks and parse it into types
             let data = match token {
@@ -14,7 +23,17 @@ impl MacroContent {
                 token if token.is_imem() => Some(ArgumentType::Imem),
                 token if token.is_imm() => Some(ArgumentType::Imm),
                 TokenKind::Comma => None,
-                _ => panic!(":3"),
+                _ => {
+                    return Err(MacroValidatorError {
+                        err_input: self.full_data.to_string(),
+                        err_message: format!("a {token} is not a valid macro argument"),
+                        help: None,
+                        err_file: self.file.to_string(),
+                        err_pos: m_pos,
+                        orig_input: orig_data.to_string(),
+                        orig_pos: span,
+                    })
+                }
             };
             if let Some(v) = data {
                 parsed_toks.push((v, span));
@@ -24,17 +43,33 @@ impl MacroContent {
         for (arg, e) in &self.args {
             current_args.push((arg.arg_type.clone(), e));
         }
-        for (index, (arg, _)) in self.args.iter().enumerate() {
-            if let Some((d, _)) = parsed_toks.get(index) {
+        for (index, (arg, span)) in self.args.iter().enumerate() {
+            if let Some((d, span)) = parsed_toks.get(index) {
                 if *d == arg.arg_type {
                     continue;
                 } else {
-                    panic!();
+                    return Err(MacroValidatorError {
+                        err_input: self.full_data.to_string(),
+                        err_message: format!("expected a {}, found a {d}", arg.arg_type),
+                        help: None,
+                        err_file: self.file.to_string(),
+                        err_pos: m_pos,
+                        orig_input: orig_data.to_string(),
+                        orig_pos: span.clone(),
+                    });
                 }
             } else {
-                panic!();
+                return Err(MacroValidatorError {
+                    err_input: self.full_data.to_string(),
+                    err_message: String::from("an incorrect number of arguments were supplied"),
+                    help: None,
+                    err_file: self.file.to_string(),
+                    err_pos: m_pos,
+                    orig_input: orig_data.to_string(),
+                    orig_pos: span.clone(),
+                });
             }
         }
-        true
+        Ok(())
     }
 }

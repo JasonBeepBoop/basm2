@@ -8,12 +8,11 @@ pub fn parse_expression(
     input: String,
     token_iter: &mut Evalex,
 ) -> Result<Expr, ParserError> {
-    let v = parse_bitwise(file, input, token_iter);
     /*if let Ok(ref d) = v {
         let e = d.evaluate();
         println!("{e}\n{d}");
     }*/
-    v
+    parse_bitwise(file, input, token_iter)
 }
 
 pub fn parse_primary(

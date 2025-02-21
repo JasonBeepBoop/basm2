@@ -31,16 +31,23 @@ label: macro_rules! fanf ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg, arg5
 "#;
     println!("{input_string_2}");
     let my_macaroni = MacroContent {
+        full_data: String::from("macro_rules! ka ( frank: reg ) {"),
         file: String::from("aw"),
         name: String::from("ka"),
-        args: vec![(FullArgument {
-            name: String::from("frank"),
-            arg_type: ArgumentType::Reg,
-        }, 0..0)],
+        args: vec![(
+            FullArgument {
+                name: String::from("frank"),
+                arg_type: ArgumentType::Reg,
+            },
+            18..23,
+        )],
         tokens: Vec::new(),
     };
-    my_macaroni.is_valid(vec![(TokenKind::Register(3), 0..0)]); // this is working
-    
+    if let Err(e) = my_macaroni.is_valid(String::from("ka!(2)"), vec![(TokenKind::IntLit(2), 4..5)])
+    {
+        // this is working
+        println!("{e}");
+    }
     let mut parser = match Parser::new(String::from("input.asm"), input_string_2) {
         Ok(v) => v,
         Err(e) => {
