@@ -4,6 +4,7 @@ use std::fmt;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct MacroContent {
+    pub file: String,
     pub name: String,
     pub args: Vec<(FullArgument, std::ops::Range<usize>)>,
     pub tokens: Vec<(TokenKind, std::ops::Range<usize>)>,
@@ -35,6 +36,59 @@ impl ArgumentType {
             "reg" => Some(ArgumentType::Reg),
             "label" => Some(ArgumentType::Label),
             _ => None,
+        }
+    }
+    pub fn equals(&self, t: TokenKind) -> bool {
+        use crate::ArgumentType::*;
+        return (*self == Mem && t.is_mem())
+            || (*self == Reg && t.is_reg())
+            || (*self == Ireg && t.is_ireg())
+            || (*self == Imem && t.is_imem())
+            || (*self == Label && t.is_ident());
+    }
+}
+
+impl TokenKind {
+    pub fn is_imm(&self) -> bool {
+        if let TokenKind::IntLit(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+    pub fn is_mem(&self) -> bool {
+        if let TokenKind::Mem(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+    pub fn is_imem(&self) -> bool {
+        if let TokenKind::IMem(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+    pub fn is_reg(&self) -> bool {
+        if let TokenKind::Register(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+    pub fn is_ireg(&self) -> bool {
+        if let TokenKind::IReg(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+    pub fn is_ident(&self) -> bool {
+        if let TokenKind::Ident(_) = self {
+            true
+        } else {
+            false
         }
     }
 }

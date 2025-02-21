@@ -1,4 +1,4 @@
-- [ ] Implement constant expression evaluation w/hashmap
+- [x] Implement constant expression evaluation w/hashmap
 - [ ] Implement .include directives
 - [ ] Create instruction validator for instruction struct
 - [ ] Implement macro verification for macro struct 

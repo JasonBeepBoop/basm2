@@ -30,6 +30,17 @@ label: macro_rules! fanf ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg, arg5
 
 "#;
     println!("{input_string_2}");
+    let my_macaroni = MacroContent {
+        file: String::from("aw"),
+        name: String::from("ka"),
+        args: vec![(FullArgument {
+            name: String::from("frank"),
+            arg_type: ArgumentType::Reg,
+        }, 0..0)],
+        tokens: Vec::new(),
+    };
+    my_macaroni.is_valid(vec![(TokenKind::Register(3), 0..0)]); // this is working
+    
     let mut parser = match Parser::new(String::from("input.asm"), input_string_2) {
         Ok(v) => v,
         Err(e) => {

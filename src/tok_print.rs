@@ -54,6 +54,7 @@ impl fmt::Display for TokenKind {
             TokenKind::IReg(value) => write!(f, "indirect register({})", value),
             TokenKind::Imm(value) => write!(f, "immediate value({})", value),
             TokenKind::Expr(value) => write!(f, "expression value({})", value),
+            TokenKind::MacroCall(name) => write!(f, "macro call ({name})"),
         }
     }
 }
