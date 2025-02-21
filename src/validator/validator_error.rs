@@ -1,20 +1,25 @@
+use crate::*;
 use colored::*;
 use std::fmt;
 use term_size::dimensions;
 
 #[derive(Debug, Clone)]
-pub struct MacroValidatorError {
+pub struct MacroValidatorError<'a> {
     pub err_input: String,
     pub err_message: String,
     pub help: Option<String>,
-    pub err_file: String,
-    pub err_pos: std::ops::Range<usize>,
     pub orig_input: String,
-    pub orig_pos: std::ops::Range<usize>,
+    pub orig_pos: std::ops::Range<usize>, // macro call
+    pub mac: &'a MacroContent,
 }
 
-impl fmt::Display for MacroValidatorError {
+impl fmt::Display for MacroValidatorError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let m_pos = if let Some((_, v)) = self.mac.args.first() {
+            v.clone()
+        } else {
+            0..0
+        };
         if self.orig_pos.start >= self.orig_input.len()
             || self.orig_pos.end > self.orig_input.len()
             || self.orig_pos.start >= self.orig_pos.end
@@ -34,7 +39,7 @@ impl fmt::Display for MacroValidatorError {
             self.orig_input.to_string(),
             self.err_message.to_string(),
             &Some(String::from("")),
-            self.err_file.to_string(),
+            self.mac.file.to_string(),
             self.orig_pos.clone(),
             lines,
         )?;
@@ -43,10 +48,14 @@ impl fmt::Display for MacroValidatorError {
             9,
             "",
             self.err_input.to_string(),
-            format!("{} in expansion of macro", "╮".bright_red()),
+            format!(
+                "{} in expansion of macro \"{}\"",
+                "╮".bright_red(),
+                self.mac.name
+            ),
             &self.help,
-            self.err_file.to_string(),
-            self.err_pos.clone(),
+            self.mac.file.to_string(),
+            m_pos,
             self.err_input.lines().collect(),
         )?;
         Ok(())

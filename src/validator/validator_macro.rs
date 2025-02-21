@@ -9,11 +9,6 @@ impl MacroContent {
         // match the tokens inside of the macro.
         // what I can do, is I can iterate through the input tokens, and iterate through the arguments
         let mut parsed_toks = Vec::new();
-        let m_pos = if let Some((_, v)) = self.args.first() {
-            v.clone()
-        } else {
-            0..0
-        };
         for (token, span) in toks {
             // this loop will clean up the toks and parse it into types
             let data = match token {
@@ -28,10 +23,9 @@ impl MacroContent {
                         err_input: self.full_data.to_string(),
                         err_message: format!("a {token} is not a valid macro argument"),
                         help: None,
-                        err_file: self.file.to_string(),
-                        err_pos: m_pos,
                         orig_input: orig_data.to_string(),
                         orig_pos: span,
+                        mac: self,
                     })
                 }
             };
@@ -52,10 +46,9 @@ impl MacroContent {
                         err_input: self.full_data.to_string(),
                         err_message: format!("expected a {}, found a {d}", arg.arg_type),
                         help: None,
-                        err_file: self.file.to_string(),
-                        err_pos: m_pos,
                         orig_input: orig_data.to_string(),
                         orig_pos: span.clone(),
+                        mac: self,
                     });
                 }
             } else {
@@ -63,10 +56,9 @@ impl MacroContent {
                     err_input: self.full_data.to_string(),
                     err_message: String::from("an incorrect number of arguments were supplied"),
                     help: None,
-                    err_file: self.file.to_string(),
-                    err_pos: m_pos,
                     orig_input: orig_data.to_string(),
                     orig_pos: span.clone(),
+                    mac: self,
                 });
             }
         }
