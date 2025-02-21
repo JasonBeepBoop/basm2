@@ -12,9 +12,12 @@ impl<'a> Parser<'a> {
         let mut errors = Vec::new();
         let mut const_names = Vec::new();
         let mut prev_was_const = false;
+        let mut saw_amp = false;
         while let Some((token, span)) = lexer.next() {
             match token {
+                Ok(TokenKind::Amp) => saw_amp = true,
                 Ok(TokenKind::MacroDef(m)) => {
+                    saw_amp = false;
                     // this here to make sure leftparen doesn't
                     // accidentally start reading a macro
                     prev_was_const = false;
@@ -39,6 +42,7 @@ impl<'a> Parser<'a> {
                     }
                 }
                 Ok(TokenKind::Constant(name)) => {
+                    saw_amp = false;
                     const_names.push(name);
                     prev_was_const = true;
                     if let Some((Ok(TokenKind::Equal), _)) = lexer.peek() {
@@ -57,6 +61,7 @@ impl<'a> Parser<'a> {
                     }
                 }
                 Ok(TokenKind::Ident(ident)) => {
+                    saw_amp = false;
                     if let Some((Ok(TokenKind::Colon), _)) = lexer.peek() {
                         let (_, _) = lexer.next().unwrap();
                         tokens.push((Ok(TokenKind::Label(ident)), span));
@@ -66,6 +71,7 @@ impl<'a> Parser<'a> {
                     prev_was_const = false;
                 }
                 Ok(TokenKind::IntLit(v)) => {
+                    saw_amp = false;
                     if prev_was_const {
                         if let Some(n) = const_names.pop() {
                             let mut vmap = VARIABLE_MAP.lock().unwrap();
@@ -87,7 +93,37 @@ impl<'a> Parser<'a> {
                         tokens.push((Ok(TokenKind::IntLit(v)), span));
                     }
                 }
+                Ok(TokenKind::LeftBracket) => {
+                    // memory addresses are also not instructions
+                    let mut addr_toks = Vec::new();
+                    'mdl: loop {
+                        match lexer.next() {
+                            Some((Ok(TokenKind::RightBracket), _)) => {
+                                break 'mdl;
+                            }
+                            Some((Ok(TokenKind::Ident(ident)), span)) => {
+                                if let Some((Ok(TokenKind::Colon), _)) = lexer.peek() {
+                                    let (_, _) = lexer.next().unwrap();
+                                    addr_toks.push(((TokenKind::Label(ident)), span));
+                                } else {
+                                    addr_toks.push(((TokenKind::Ident(ident)), span));
+                                }
+                            }
+                            Some((Ok(v), span)) => addr_toks.push((v, span)),
+                            _ => break 'mdl,
+                        }
+                    }
+                    tokens.push((
+                        Ok(TokenKind::Mem(MemAddr {
+                            indirect: saw_amp,
+                            content: addr_toks,
+                        })),
+                        span,
+                    ));
+                    saw_amp = false;
+                }
                 Ok(TokenKind::LeftParen) => 'lpn: {
+                    saw_amp = false;
                     match parse_expression_after_left_paren(&file, input.to_string(), &mut lexer) {
                         Ok(Some((value, new_span))) => {
                             if prev_was_const {
@@ -124,6 +160,7 @@ impl<'a> Parser<'a> {
                     }
                 }
                 _ => {
+                    saw_amp = false;
                     tokens.push((token, span));
                 }
             }
@@ -140,7 +177,6 @@ impl<'a> Parser<'a> {
     ) -> Vec<(Result<TokenKind, ()>, std::ops::Range<usize>)> {
         let mut new_tokens = Vec::new();
         let mut token_iter = tokens.into_iter().peekable();
-
         while let Some((token, span)) = token_iter.next() {
             match token {
                 Ok(TokenKind::MacroCall(m)) => {
@@ -165,38 +201,16 @@ impl<'a> Parser<'a> {
                         }
                     }
                 }
-                Ok(TokenKind::LeftBracket) => {
-                    // memory addresses are also not instructions
-                    new_tokens.push((Ok(TokenKind::LeftBracket), span));
-                    'mdl: loop {
-                        match token_iter.next() {
-                            Some((Ok(TokenKind::RightBracket), l)) => {
-                                new_tokens.push((Ok(TokenKind::RightBracket), l));
-                                break 'mdl;
-                            }
-                            Some((Ok(TokenKind::Ident(ident)), span)) => {
-                                if let Some((Ok(TokenKind::Colon), _)) = token_iter.peek() {
-                                    let (_, _) = token_iter.next().unwrap();
-                                    new_tokens.push((Ok(TokenKind::Label(ident)), span));
-                                } else {
-                                    new_tokens.push((Ok(TokenKind::Ident(ident)), span));
-                                }
-                            }
-                            Some(v) => new_tokens.push(v),
-                            _ => break 'mdl,
-                        }
-                    }
-                }
+
                 Ok(TokenKind::Ident(name)) => {
                     let mut has_colon = false;
                     let mut peek_iter = token_iter.clone();
                     while let Some((peek_token, _)) = peek_iter.peek() {
                         match peek_token {
                             Ok(TokenKind::Newline) => break,
-                            Ok(TokenKind::Colon)
-                            | Ok(TokenKind::LeftBrace)
-                            | Ok(TokenKind::StringLit(_)) => {
-                                has_colon = true;
+                            Ok(TokenKind::Colon) => has_colon = true,
+
+                            Ok(TokenKind::LeftBrace) | Ok(TokenKind::StringLit(_)) => {
                                 break;
                             }
                             _ => {

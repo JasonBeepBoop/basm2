@@ -3,6 +3,12 @@ use serde::Serialize;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
+pub struct MemAddr {
+    pub indirect: bool,
+    pub content: Vec<(TokenKind, std::ops::Range<usize>)>,
+}
+
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct MacroContent {
     pub full_data: String,
     pub file: String,
@@ -68,8 +74,7 @@ impl TokenKind {
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum InstructionArgument {
-    Mem(i64),
-    IMem(i64),
+    Mem(MemAddr),
     Reg(u8),
     IReg(u8),
     Imm(i64),
@@ -128,8 +133,7 @@ impl fmt::Display for ArgumentType {
 impl fmt::Display for InstructionArgument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InstructionArgument::Mem(token) => write!(f, "Mem({})", token),
-            InstructionArgument::IMem(token) => write!(f, "IMem({})", token),
+            InstructionArgument::Mem(token) => write!(f, "Mem({:#?})", token),
             InstructionArgument::Reg(reg) => write!(f, "Reg({})", reg),
             InstructionArgument::IReg(reg) => write!(f, "IReg({})", reg),
             InstructionArgument::Imm(imm) => write!(f, "Imm({})", imm),

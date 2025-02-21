@@ -142,8 +142,7 @@ pub enum TokenKind {
 
     Label(String),
 
-    #[regex(r"\[?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|\d+\]", |lex| parse_content(&lex.slice()[1..lex.slice().len() - 1]) )]
-    Mem(i64),
+    Mem(MemAddr),
 
     IIdent(String),
 
