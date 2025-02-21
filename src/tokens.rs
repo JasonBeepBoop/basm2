@@ -142,6 +142,8 @@ pub enum TokenKind {
     IMem(Box<TokenKind>),
 
     IIdent(String),
+
+    #[regex("&[rR][0-9]", |lex| lex.slice()[2..].parse::<u8>().unwrap())]
     IReg(u8),
     Imm(i64),
     Expr(i64),

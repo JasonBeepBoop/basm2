@@ -27,7 +27,7 @@ const v = (4 * 3)
 label: macro_rules! fanf ( arg1 : reg, arg2 : imm, arg3 : mem, arg4 : ireg, arg5 : label ) { 
     mov r0, (v + 2)
 }
-
+fanf!(r0, 2, [0xff], &r3, data)
 "#;
     println!("{input_string_2}");
     let my_macaroni = MacroContent {
