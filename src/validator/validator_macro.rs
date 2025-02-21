@@ -15,7 +15,6 @@ impl MacroContent {
                 token if token.is_reg() => Some(ArgumentType::Reg),
                 token if token.is_ireg() => Some(ArgumentType::Ireg),
                 token if token.is_mem() => Some(ArgumentType::Mem),
-                token if token.is_imem() => Some(ArgumentType::Imem),
                 token if token.is_imm() => Some(ArgumentType::Imm),
                 TokenKind::Comma => None,
                 _ => {

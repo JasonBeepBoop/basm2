@@ -44,7 +44,6 @@ impl ArgumentType {
         (*self == Mem && t.is_mem())
             || (*self == Reg && t.is_reg())
             || (*self == Ireg && t.is_ireg())
-            || (*self == Imem && t.is_imem())
             || (*self == Label && t.is_ident())
     }
 }
@@ -55,9 +54,6 @@ impl TokenKind {
     }
     pub fn is_mem(&self) -> bool {
         matches!(self, TokenKind::Mem(_))
-    }
-    pub fn is_imem(&self) -> bool {
-        matches!(self, TokenKind::IMem(_))
     }
     pub fn is_reg(&self) -> bool {
         matches!(self, TokenKind::Register(_))
@@ -72,8 +68,8 @@ impl TokenKind {
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum InstructionArgument {
-    Mem(Box<TokenKind>),
-    IMem(Box<TokenKind>),
+    Mem(i64),
+    IMem(i64),
     Reg(u8),
     IReg(u8),
     Imm(i64),

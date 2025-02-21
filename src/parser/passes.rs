@@ -165,6 +165,28 @@ impl<'a> Parser<'a> {
                         }
                     }
                 }
+                Ok(TokenKind::LeftBracket) => {
+                    // memory addresses are also not instructions
+                    new_tokens.push((Ok(TokenKind::LeftBracket), span));
+                    'mdl: loop {
+                        match token_iter.next() {
+                            Some((Ok(TokenKind::RightBracket), l)) => {
+                                new_tokens.push((Ok(TokenKind::RightBracket), l));
+                                break 'mdl;
+                            }
+                            Some((Ok(TokenKind::Ident(ident)), span)) => {
+                                if let Some((Ok(TokenKind::Colon), _)) = token_iter.peek() {
+                                    let (_, _) = token_iter.next().unwrap();
+                                    new_tokens.push((Ok(TokenKind::Label(ident)), span));
+                                } else {
+                                    new_tokens.push((Ok(TokenKind::Ident(ident)), span));
+                                }
+                            }
+                            Some(v) => new_tokens.push(v),
+                            _ => break 'mdl,
+                        }
+                    }
+                }
                 Ok(TokenKind::Ident(name)) => {
                     let mut has_colon = false;
                     let mut peek_iter = token_iter.clone();

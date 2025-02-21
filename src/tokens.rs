@@ -85,6 +85,12 @@ pub enum TokenKind {
     #[token("|")]
     Pipe,
 
+    #[token("[")]
+    LeftBracket,
+
+    #[token("]")]
+    RightBracket,
+
     #[token("||")]
     PipePipe,
 
@@ -135,11 +141,9 @@ pub enum TokenKind {
     Instruction(InstructionData),
 
     Label(String),
-    #[regex(r"\[([^\]]+)\]", |lex| parse_bracketed_content(lex.slice()))]
-    Mem(Box<TokenKind>),
 
-    #[regex(r"&\[([^\]]+)\]", |lex| parse_bracketed_content(&lex.slice()[1..]))]
-    IMem(Box<TokenKind>),
+    #[regex(r"\[?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|\d+\]", |lex| parse_content(&lex.slice()[1..lex.slice().len() - 1]) )]
+    Mem(i64),
 
     IIdent(String),
 
@@ -158,29 +162,10 @@ fn parse_content(content: &str) -> i64 {
     } else if content.chars().all(|c| c.is_ascii_digit()) {
         content.parse::<i64>().unwrap()
     } else {
-        panic!("poo poo");
+        panic!("lexer failed to parse Integer Literal");
     }
 }
-fn parse_bracketed_content(slice: &str) -> Box<TokenKind> {
-    let content = &slice[1..slice.len() - 1];
-    if content.starts_with("0x") || content.starts_with("0X") {
-        Box::new(TokenKind::IntLit(
-            i64::from_str_radix(&content[2..], 16).unwrap(),
-        ))
-    } else if content.starts_with("0b") || content.starts_with("0B") {
-        Box::new(TokenKind::IntLit(
-            i64::from_str_radix(&content[2..], 2).unwrap(),
-        ))
-    } else if content.starts_with("0o") || content.starts_with("0O") {
-        Box::new(TokenKind::IntLit(
-            i64::from_str_radix(&content[2..], 8).unwrap(),
-        ))
-    } else if content.chars().all(|c| c.is_ascii_digit()) {
-        Box::new(TokenKind::IntLit(content.parse::<i64>().unwrap()))
-    } else {
-        Box::new(TokenKind::Ident(slice[1..slice.len() - 1].to_string()))
-    }
-}
+
 impl TokenKind {
     pub fn is_empty(&self) -> bool {
         matches!(self, TokenKind::Tab | TokenKind::Whitespace)
