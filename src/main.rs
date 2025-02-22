@@ -66,7 +66,6 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
     for (element, span) in &toks {
         counter += 1;
         if let MacroCall(call) = element {
-            counter -= 1;
             in_call = true;
             mac_call_data = Vec::new();
             if let Some(v) = mac_map.get(call) {
@@ -90,17 +89,12 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
             continue;
         }
         if let RightParen = element {
-            counter -= 1;
             in_call = false;
             if let Some((_, m)) = curr_mac {
                 match m.is_valid(input_string.to_string(), mac_call_data.clone()) {
                     Ok(v) => {
                         expanded_loc_map.insert(counter, v.clone());
                         expanded_indices.push(counter);
-                        println!("expanded toks:");
-                        for (tok, _) in v {
-                            println!("{tok}");
-                        }
                     }
                     Err(e) => {
                         for e in e {
@@ -112,11 +106,11 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
             continue;
         }
         if in_call {
-            counter -= 1;
             mac_call_data.push((element.clone(), span.clone()));
         }
     }
     let size = toks.len();
+    println!("{toks:#?}");
     for i in 0..size {
         if expanded_indices.contains(&i) {
             let expanded = expanded_loc_map.get(&i).unwrap(); // this never fails as all pairs match
@@ -141,5 +135,7 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
         }
     }
     toks = new_tokens;
-    println!("{toks:#?}");
+    for (f, _) in toks {
+        println!("{f}");
+    }
 }
