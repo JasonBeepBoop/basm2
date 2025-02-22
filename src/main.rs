@@ -110,7 +110,6 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
         }
     }
     let size = toks.len();
-    println!("{toks:#?}");
     for i in 0..size {
         if expanded_indices.contains(&i) {
             let expanded = expanded_loc_map.get(&i).unwrap(); // this never fails as all pairs match

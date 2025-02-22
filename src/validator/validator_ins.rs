@@ -43,6 +43,22 @@ impl InstructionData {
                 5,
                 self.args.len() == 1 && self.args.first().is_some_and(|x| x.0.is_imm()),
             ),
+            "push" => (
+                6,
+                self.args.len() == 1
+                    && self
+                        .args
+                        .first()
+                        .is_some_and(|x| x.0.is_imm() || x.0.is_reg()),
+            ),
+            "pop" => (
+                7,
+                self.args.len() == 1
+                    && self
+                        .args
+                        .first()
+                        .is_some_and(|x| x.0.is_mem() || x.0.is_reg()),
+            ),
             _ => {
                 return Err(format!(
                     "instruction {} does not exist",
@@ -75,19 +91,23 @@ impl InstructionData {
     }
 }
 
-const LHS_DETAIL: [&str; 6] = [
+const LHS_DETAIL: [&str; 8] = [
     "register",
     "memory address or register indirect",
     "no",
     "register",
     "memory address or register indirect",
     "immediate",
+    "immediate or register",
+    "memory address or register",
 ];
-const RHS_DETAIL: [&str; 6] = [
+const RHS_DETAIL: [&str; 8] = [
     "register, register indirect, memory indirect, or immediate",
     "no",
     "no",
     "memory address",
     "register",
+    "no",
+    "no",
     "no",
 ];
