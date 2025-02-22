@@ -87,6 +87,30 @@ pub enum InstructionArgument {
     MacroIdent(String),
 }
 impl InstructionArgument {
+    pub fn get_value(&self) -> i64 {
+        use crate::InstructionArgument::*;
+        match self {
+            Reg(v) => *v as i64,
+            IReg(v) => *v as i64,
+            Imm(v) => *v,
+            Ident(s) => {
+                let vmap = V_MAP.lock().unwrap();
+                if let Some((_, _, v)) = vmap.get(s) {
+                    *v
+                } else {
+                    0
+                }
+            }
+            Mem(m) => {
+                if let Some((v, _)) = m.content.first() {
+                    v.get_value()
+                } else {
+                    0
+                }
+            }
+            _ => 0,
+        }
+    }
     pub fn is_imm(&self) -> bool {
         matches!(self, InstructionArgument::Imm(_))
     }
@@ -121,6 +145,12 @@ impl TokenKind {
             Ident(v) => InstructionArgument::Ident(v.clone()),
             MacroIdent(v) => InstructionArgument::MacroIdent(v.clone()),
             _ => panic!(":3"),
+        }
+    }
+    pub fn get_value(&self) -> i64 {
+        match self {
+            TokenKind::IntLit(v) => *v,
+            _ => 0,
         }
     }
 }
