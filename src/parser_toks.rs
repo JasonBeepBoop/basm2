@@ -12,7 +12,7 @@ pub struct MemAddr {
 pub struct MacroContent {
     pub full_data: String,
     pub file: String,
-    pub name: String,
+    pub name: (String, std::ops::Range<usize>),
     pub args: Vec<(FullArgument, std::ops::Range<usize>)>,
     pub tokens: Vec<(TokenKind, std::ops::Range<usize>)>,
 }
@@ -25,6 +25,7 @@ pub struct FullArgument {
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum ArgumentType {
+    // for macros
     Mem,
     Imem,
     Ireg,
@@ -59,8 +60,12 @@ impl TokenKind {
         matches!(self, TokenKind::IntLit(_))
     }
     pub fn is_mem(&self) -> bool {
-        matches!(self, TokenKind::Mem(_))
+        matches!(self, TokenKind::Mem(mem_addr) if !mem_addr.indirect)
     }
+    pub fn is_imem(&self) -> bool {
+        matches!(self, TokenKind::Mem(mem_addr) if mem_addr.indirect)
+    }
+
     pub fn is_reg(&self) -> bool {
         matches!(self, TokenKind::Register(_))
     }
@@ -81,6 +86,58 @@ pub enum InstructionArgument {
     Ident(String),
     MacroIdent(String),
 }
+impl InstructionArgument {
+    pub fn is_imm(&self) -> bool {
+        matches!(self, InstructionArgument::Imm(_))
+    }
+    pub fn is_mem(&self) -> bool {
+        matches!(self, InstructionArgument::Mem(mem_addr) if !mem_addr.indirect)
+    }
+    pub fn is_imem(&self) -> bool {
+        matches!(self, InstructionArgument::Mem(mem_addr) if mem_addr.indirect)
+    }
+
+    pub fn is_reg(&self) -> bool {
+        matches!(self, InstructionArgument::Reg(_))
+    }
+    pub fn is_ireg(&self) -> bool {
+        matches!(self, InstructionArgument::IReg(_))
+    }
+    pub fn is_ident(&self) -> bool {
+        matches!(
+            self,
+            InstructionArgument::Ident(_) | InstructionArgument::MacroIdent(_)
+        )
+    }
+}
+impl TokenKind {
+    pub fn to_tok_kind(&self) -> InstructionArgument {
+        use crate::TokenKind::*;
+        match self {
+            Mem(v) => InstructionArgument::Mem(v.clone()),
+            Register(v) => InstructionArgument::Reg(*v),
+            IReg(v) => InstructionArgument::IReg(*v),
+            IntLit(v) => InstructionArgument::Imm(*v),
+            Ident(v) => InstructionArgument::Ident(v.clone()),
+            MacroIdent(v) => InstructionArgument::MacroIdent(v.clone()),
+            _ => panic!(":3"),
+        }
+    }
+}
+
+impl InstructionArgument {
+    pub fn to_tok_kind(&self) -> TokenKind {
+        use crate::InstructionArgument::*;
+        match self {
+            Mem(v) => TokenKind::Mem(v.clone()),
+            Reg(v) => TokenKind::Register(*v),
+            IReg(v) => TokenKind::IReg(*v),
+            Imm(v) => TokenKind::IntLit(*v),
+            Ident(v) => TokenKind::Ident(v.clone()),
+            MacroIdent(v) => TokenKind::MacroIdent(v.clone()),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct InstructionData {
@@ -88,9 +145,23 @@ pub struct InstructionData {
     pub args: Vec<(InstructionArgument, std::ops::Range<usize>)>,
 }
 
+impl fmt::Display for MemAddr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "├── Indirect: {}", self.indirect)?;
+        for (i, (arg, _)) in self.content.iter().enumerate() {
+            if i != self.content.len() - 1 {
+                writeln!(f, "    │   ├── {}", arg)?;
+            } else {
+                write!(f, "    │   └── {}", arg)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 impl fmt::Display for MacroContent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Macro: {}", self.name)?;
+        writeln!(f, "Macro: {}", self.name.0)?;
         writeln!(f, "├── Args:")?;
         for (i, (arg, _)) in self.args.iter().enumerate() {
             if i != self.args.len() - 1 {
@@ -129,11 +200,22 @@ impl fmt::Display for ArgumentType {
         }
     }
 }
-
+impl InstructionArgument {
+    pub fn get_raw(&self) -> String {
+        match self {
+            InstructionArgument::Mem(token) => String::from("memory direct"),
+            InstructionArgument::Reg(reg) => String::from("register"),
+            InstructionArgument::IReg(reg) => String::from("register indirect"),
+            InstructionArgument::Imm(imm) => String::from("immediate"),
+            InstructionArgument::Ident(ident) => String::from("identifier"),
+            InstructionArgument::MacroIdent(ident) => String::from("macro identifier"),
+        }
+    }
+}
 impl fmt::Display for InstructionArgument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InstructionArgument::Mem(token) => write!(f, "Mem({:#?})", token),
+            InstructionArgument::Mem(token) => write!(f, "Mem\n    {}", token),
             InstructionArgument::Reg(reg) => write!(f, "Reg({})", reg),
             InstructionArgument::IReg(reg) => write!(f, "IReg({})", reg),
             InstructionArgument::Imm(imm) => write!(f, "Imm({})", imm),

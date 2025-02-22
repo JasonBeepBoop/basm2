@@ -1,10 +1,14 @@
+use crate::*;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
+use std::ops::Range;
 use std::sync::Mutex;
-// Where it is                   name      file     loc                     val
-type Ltable = Lazy<Mutex<HashMap<String, (String, std::ops::Range<usize>, usize)>>>;
-type Vtable = Lazy<Mutex<HashMap<String, (String, std::ops::Range<usize>, i64)>>>;
+//                                 name    data
+type Table<T> = Lazy<Mutex<HashMap<String, T>>>;
 
-pub static VARIABLE_MAP: Vtable = Lazy::new(|| Mutex::new(HashMap::new()));
+pub static V_MAP: Table<(String, Range<usize>, i64)> = Lazy::new(|| Mutex::new(HashMap::new()));
 
-pub static LABEL_MAP: Ltable = Lazy::new(|| Mutex::new(HashMap::new()));
+pub static LABEL_MAP: Table<(String, Range<usize>, usize)> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+pub static MACRO_MAP: Table<(String, MacroContent)> = Lazy::new(|| Mutex::new(HashMap::new()));

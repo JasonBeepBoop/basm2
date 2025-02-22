@@ -1,8 +1,12 @@
+- [ ] URGENT: FIX SO MANY CLONES AND PANICS!!!! PLEASE!!!!
+- [ ] URGENT: USE REFERENCE TYPES !!!! WHY DID I FORGET THIS ???
 - [x] Implement constant expression evaluation w/hashmap
 - [ ] Implement .include directives
 - [ ] Create instruction validator for instruction struct
-- [ ] Implement macro verification for macro struct 
+- [x] Implement macro verification for macro struct 
 - [ ] Implement expand function for macro when arguments are passed
-- [ ] Create macro TokenKind
+- [x] Create macro TokenKind
 - [ ] Implement codegeneration
 - [ ] Create warning type
+- [ ] Implement instruction verification INSIDE of the macro expander
+- [ ] Attempt early label symbol table resolution

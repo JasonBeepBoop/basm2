@@ -50,7 +50,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Macro(content) => write!(f, "{}", content),
             TokenKind::Instruction(data) => write!(f, "{}", data),
             TokenKind::Label(value) => write!(f, "label({})", value),
-            TokenKind::Mem(token) => write!(f, "memory({:#?})", token),
+            TokenKind::Mem(token) => write!(f, "memory address\n{}", token),
             TokenKind::IIdent(value) => write!(f, "indirect identifier({})", value),
             TokenKind::IReg(value) => write!(f, "indirect register({})", value),
             TokenKind::Imm(value) => write!(f, "immediate value({})", value),

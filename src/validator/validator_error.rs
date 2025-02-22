@@ -4,22 +4,24 @@ use std::fmt;
 use term_size::dimensions;
 
 #[derive(Debug, Clone)]
-pub struct MacroValidatorError<'a> {
+pub struct MacroValidatorError {
     pub err_input: String,
     pub err_message: String,
     pub help: Option<String>,
     pub orig_input: String,
-    pub orig_pos: std::ops::Range<usize>, // macro call
-    pub mac: &'a MacroContent,
+    pub orig_pos: std::ops::Range<usize>, // macro call spot
+    pub mac: MacroContent,
 }
 
-impl fmt::Display for MacroValidatorError<'_> {
+impl fmt::Display for MacroValidatorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let m_pos = if let Some((_, v)) = self.mac.args.first() {
-            v.clone()
+        let s_pos = self.mac.name.1.start;
+        let e_pos = if let Some((_, v)) = self.mac.args.last() {
+            v.end
         } else {
-            0..0
+            0
         };
+        let m_pos = s_pos..e_pos;
         if self.orig_pos.start >= self.orig_input.len()
             || self.orig_pos.end > self.orig_input.len()
             || self.orig_pos.start >= self.orig_pos.end
@@ -35,42 +37,49 @@ impl fmt::Display for MacroValidatorError<'_> {
         print_err_and_line(
             f,
             0,
-            "error",
-            self.orig_input.to_string(),
-            self.err_message.to_string(),
-            &Some(String::from("")),
-            self.mac.file.to_string(),
-            self.orig_pos.clone(),
+            (
+                "error",
+                self.orig_input.to_string(),
+                self.err_message.to_string(),
+                &Some(String::from("")),
+                self.mac.file.to_string(),
+                self.orig_pos.clone(),
+            ),
             lines,
         )?;
         write!(f, "{}", "╮".bright_red())?;
         print_err_and_line(
             f,
             9,
-            "",
-            self.err_input.to_string(),
-            format!(" in expansion of macro \"{}\"", self.mac.name),
-            &self.help,
-            self.mac.file.to_string(),
-            m_pos,
+            (
+                "",
+                self.err_input.to_string(),
+                format!(" in expansion of macro `{}`", self.mac.name.0),
+                &self.help,
+                self.mac.file.to_string(),
+                m_pos,
+            ),
             self.err_input.lines().collect(),
         )?;
         Ok(())
     }
 }
-
 pub fn print_err_and_line(
     f: &mut fmt::Formatter<'_>,
     indents: usize,
-    title: &str,
-    text: String,
-    msg: String,
-    help: &Option<String>,
-    file: String,
-    pos: std::ops::Range<usize>,
+    data: (
+        &str,
+        String,
+        String,
+        &Option<String>,
+        String,
+        std::ops::Range<usize>,
+    ),
     lines: Vec<&str>,
 ) -> fmt::Result {
+    let (title, text, msg, help, file, pos) = data;
     let terminal_width = dimensions().map(|(w, _)| w).unwrap_or(80);
+
     for (line_number, line) in lines.iter().enumerate() {
         let line_start = text
             .lines()
@@ -82,34 +91,35 @@ pub fn print_err_and_line(
         if (line_start <= pos.start && pos.start < line_end)
             || (line_start <= pos.end && pos.end < line_end)
         {
-            let error_start = if pos.start >= line_start {
-                pos.start - line_start
-            } else {
-                0
-            };
-            let error_end = if pos.end < line_end {
-                pos.end - line_start
-            } else {
-                line.len()
-            };
+            let error_start = pos.start.saturating_sub(line_start);
+            let error_end = (pos.end).min(line_end) - line_start;
             let start_spaces = " ".repeat(indents);
+            let msg_vec: Vec<String> = msg.lines().map(|l| l.to_string()).collect();
+            let mut msg = String::from("");
+            for (index, line) in msg_vec.iter().enumerate() {
+                if index == 0 {
+                    msg = format!("{line}");
+                } else {
+                    msg = format!(
+                        "{msg}\n{}{}{line}",
+                        "│".bright_red(),
+                        " ".repeat(title.len() + 1)
+                    );
+                }
+            }
             if title == "error" {
                 writeln!(
                     f,
                     "{start_spaces}{}: {}",
                     title.bright_red().underline(),
-                    msg.bold()
+                    msg
                 )?;
             } else if title.is_empty() {
                 writeln!(f, "{}", msg.bold())?;
             } else {
-                writeln!(
-                    f,
-                    "{start_spaces}{}: {}",
-                    title.yellow().underline(),
-                    msg.bold()
-                )?;
+                writeln!(f, "{start_spaces}{}: {}", title.yellow().underline(), msg)?;
             }
+
             let left_char = if help.is_some() { "├" } else { "╰" };
             writeln!(
                 f,

@@ -52,7 +52,10 @@ impl Parser<'_> {
         args
     }
 
-    fn parse_macro_arguments(&mut self, name: String) -> Vec<(TokenKind, std::ops::Range<usize>)> {
+    fn parse_macro_arguments(
+        &mut self,
+        name: (String, std::ops::Range<usize>),
+    ) -> Vec<(TokenKind, std::ops::Range<usize>)> {
         let input_str = self.input.to_string();
         let mut tokens = Vec::new();
         let mut args = Vec::new();
@@ -157,8 +160,8 @@ impl Parser<'_> {
             Some((v, l)) => (v, l),
             None => return tokens,
         };
-        let name = if let Ok(TokenKind::Ident(v)) = val {
-            v
+        let name = if let (Ok(TokenKind::Ident(v)), r) = (val, loc.clone()) {
+            (v, r)
         } else {
             self.errors.push(ParserError {
                 file: self.file.to_string(),

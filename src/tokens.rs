@@ -115,7 +115,7 @@ pub enum TokenKind {
     #[regex(r"macro_rules!", |lex| lex.slice().to_string())]
     MacroDef(String),
 
-    #[regex("const[ ][a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice()[6..].trim().to_string())]
+    #[regex("const[ ]+[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice()[6..].trim().to_string())]
     Constant(String),
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
@@ -166,8 +166,13 @@ fn parse_content(content: &str) -> i64 {
 }
 
 impl TokenKind {
-    pub fn is_empty(&self) -> bool {
-        matches!(self, TokenKind::Tab | TokenKind::Whitespace)
+    // (M)acro (I)dentifier
+    pub fn get_mi_raw(&self) -> Option<String> {
+        if let TokenKind::MacroIdent(d) = self {
+            Some(d.to_string())
+        } else {
+            None
+        }
     }
 }
 fn parse_char(s: &str) -> char {

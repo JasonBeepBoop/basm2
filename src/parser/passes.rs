@@ -74,7 +74,7 @@ impl<'a> Parser<'a> {
                     saw_amp = false;
                     if prev_was_const {
                         if let Some(n) = const_names.pop() {
-                            let mut vmap = VARIABLE_MAP.lock().unwrap();
+                            let mut vmap = V_MAP.lock().unwrap();
                             vmap.insert(n, (file.to_string(), span, v));
                             std::mem::drop(vmap);
                         } else {
@@ -98,6 +98,25 @@ impl<'a> Parser<'a> {
                     let mut addr_toks = Vec::new();
                     'mdl: loop {
                         match lexer.next() {
+                            // let's try to do math in it
+                            Some((Ok(TokenKind::LeftParen), span)) => {
+                                match parse_expression_after_left_paren(
+                                    &file,
+                                    input.to_string(),
+                                    &mut lexer,
+                                ) {
+                                    Ok(Some((value, new_span))) => {
+                                        addr_toks.push((TokenKind::IntLit(value), new_span));
+                                    }
+                                    Ok(None) => {
+                                        addr_toks.push((TokenKind::LeftParen, span));
+                                        break 'mdl;
+                                    }
+                                    Err(e) => {
+                                        errors.push(e);
+                                    }
+                                }
+                            }
                             Some((Ok(TokenKind::RightBracket), _)) => {
                                 break 'mdl;
                             }
@@ -109,6 +128,7 @@ impl<'a> Parser<'a> {
                                     addr_toks.push(((TokenKind::Ident(ident)), span));
                                 }
                             }
+                            Some((Ok(TokenKind::RightParen), _)) => (),
                             Some((Ok(v), span)) => addr_toks.push((v, span)),
                             _ => break 'mdl,
                         }
@@ -128,7 +148,7 @@ impl<'a> Parser<'a> {
                         Ok(Some((value, new_span))) => {
                             if prev_was_const {
                                 if let Some(n) = const_names.pop() {
-                                    let mut vmap = VARIABLE_MAP.lock().unwrap();
+                                    let mut vmap = V_MAP.lock().unwrap();
                                     vmap.insert(n, (file.to_string(), new_span, value));
                                     std::mem::drop(vmap);
                                 } else {
@@ -208,9 +228,12 @@ impl<'a> Parser<'a> {
                     while let Some((peek_token, _)) = peek_iter.peek() {
                         match peek_token {
                             Ok(TokenKind::Newline) => break,
-                            Ok(TokenKind::Colon) => has_colon = true,
-
+                            Ok(TokenKind::Label(_)) => {
+                                has_colon = true;
+                                break;
+                            }
                             Ok(TokenKind::LeftBrace) | Ok(TokenKind::StringLit(_)) => {
+                                has_colon = true;
                                 break;
                             }
                             _ => {

@@ -46,7 +46,7 @@ pub fn parse_primary(
                 }
             }
             Ok(TokenKind::Ident(val)) => {
-                let vmap = VARIABLE_MAP.lock().unwrap();
+                let vmap = V_MAP.lock().unwrap();
                 if let Some((_, _, v)) = vmap.get(&val) {
                     let val = Ok(Expr::Int(*v));
                     std::mem::drop(vmap);
