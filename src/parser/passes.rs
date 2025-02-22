@@ -266,7 +266,11 @@ impl<'a> Parser<'a> {
                             }
                         }
                         new_tokens.push((
-                            Ok(TokenKind::Instruction(InstructionData { name, args })),
+                            Ok(TokenKind::Instruction(InstructionData {
+                                expanded: false,
+                                name,
+                                args,
+                            })),
                             span,
                         ));
                     }

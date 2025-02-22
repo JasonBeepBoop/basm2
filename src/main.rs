@@ -114,7 +114,7 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
     for i in 0..size {
         if expanded_indices.contains(&i) {
             let expanded = expanded_loc_map.get(&i).unwrap(); // this never fails as all pairs match
-            for element in expanded.into_iter().rev() {
+            for element in expanded.iter().rev() {
                 toks.insert(i, element.clone());
             }
         }
@@ -124,10 +124,9 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
     while let Some((v, s)) = tokerator.next() {
         match v {
             MacroCall(_) => {
-                while let Some((val, span)) = tokerator.next() {
-                    match val {
-                        RightParen => break,
-                        _ => (),
+                for (val, _) in tokerator.by_ref() {
+                    if val == RightParen {
+                        break;
                     }
                 }
             }

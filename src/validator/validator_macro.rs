@@ -1,5 +1,7 @@
 use crate::*;
 use std::collections::HashMap;
+
+#[allow(suspicious_double_ref_op)]
 impl MacroContent {
     pub fn is_valid(
         &self,
@@ -123,6 +125,7 @@ impl MacroContent {
                     ins_args.push((thing.clone(), place.clone()));
                 }
                 let reconstruct = InstructionData {
+                    expanded: true,
                     name: contents.name.to_string(),
                     args: ins_args,
                 };

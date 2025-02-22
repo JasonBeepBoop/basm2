@@ -98,7 +98,7 @@ pub fn print_err_and_line(
             let mut msg = String::from("");
             for (index, line) in msg_vec.iter().enumerate() {
                 if index == 0 {
-                    msg = format!("{line}");
+                    msg = line.to_string();
                 } else {
                     msg = format!(
                         "{msg}\n{}{}{line}",

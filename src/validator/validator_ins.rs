@@ -75,7 +75,7 @@ impl InstructionData {
     }
 }
 
-const LHS_DETAIL: [&'static str; 6] = [
+const LHS_DETAIL: [&str; 6] = [
     "register",
     "memory address or register indirect",
     "no",
@@ -83,7 +83,7 @@ const LHS_DETAIL: [&'static str; 6] = [
     "memory address or register indirect",
     "immediate",
 ];
-const RHS_DETAIL: [&'static str; 6] = [
+const RHS_DETAIL: [&str; 6] = [
     "register, register indirect, memory indirect, or immediate",
     "no",
     "no",
