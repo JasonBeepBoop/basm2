@@ -14,33 +14,28 @@ fn main() {
         Some(parser) => parser,
         None => std::process::exit(1),
     };
+    print_errc!(error_count);
 
     let mut toks = match parse_tokens(&mut parser, &input_string, &mut error_count) {
         Some(tokens) => tokens,
         None => std::process::exit(1),
     };
+    print_errc!(error_count);
 
     process_includes(&mut toks, &mut error_count);
+    print_errc!(error_count);
     process_macros(&mut toks, &mut error_count);
+    print_errc!(error_count);
     process_start(&mut toks, &mut error_count);
-    if error_count > 0 {
-        print_errors(error_count);
-        std::process::exit(1);
-    }
+    print_errc!(error_count);
     if CONFIG.verbose {
         print_msg!("COMPLETE TOKENS");
         for (_, f, _) in &toks {
             println!("{f}");
         }
     }
-    if error_count > 0 {
-        print_errors(error_count);
-        std::process::exit(1);
-    }
+    print_errc!(error_count);
     let l_map = LABEL_MAP.lock().unwrap();
     println!("{l_map:?}");
-    if error_count > 0 {
-        print_errors(error_count);
-        std::process::exit(1);
-    }
+    print_errc!(error_count);
 }

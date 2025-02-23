@@ -1,4 +1,13 @@
 #[macro_export]
+macro_rules! print_errc {
+    ( $error_count:expr ) => {
+        if $error_count > 0 {
+            print_errors($error_count);
+            std::process::exit(1);
+        }
+    };
+}
+#[macro_export]
 macro_rules! print_msg {
     ($($arg:tt)*) => {
         #[allow(unused_imports)]
