@@ -1,6 +1,8 @@
 use crate::*;
+use colored::*;
 use std::fs::File;
 use std::io::Read;
+
 pub fn process_includes(
     toks: &mut Vec<(String, TokenKind, std::ops::Range<usize>)>,
     error_count: &mut i32,
@@ -51,7 +53,11 @@ pub fn read_file(file_path: &str) -> String {
     let mut file_data = match File::open(file_path) {
         Ok(file) => file,
         Err(e) => {
-            println!("cannot read file {file_path}: {e}");
+            println!(
+                "{}: cannot open file \"{}\": {e}",
+                "error".bright_red(),
+                file_path.bold().magenta()
+            );
             std::process::exit(1)
         }
     };
@@ -60,7 +66,11 @@ pub fn read_file(file_path: &str) -> String {
     match file_data.read_to_string(&mut contents) {
         Ok(_) => contents,
         Err(e) => {
-            println!("cannot read file {file_path}: {e}");
+            println!(
+                "{}: cannot read file \"{}\": {e}",
+                "error".bright_red(),
+                file_path.bold().magenta()
+            );
             std::process::exit(1);
         }
     }

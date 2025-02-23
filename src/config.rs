@@ -14,9 +14,10 @@ pub struct Args {
     #[clap(short = 'o', long)]
     pub binary: Option<String>,
 
-    //    /// Source code
-    //    #[clap(required = true)]
-    //    pub source: String,
+    /// Source code
+    #[clap(required = true)]
+    pub source: String,
+
     /// Verbose output
     #[clap(short = 'v', long, default_value_t = false)]
     pub verbose: bool,
@@ -28,7 +29,7 @@ pub fn declare_config() -> Args {
     let binary = cli.binary.unwrap_or_else(|| "a.out".to_string());
 
     Args {
-        //        source: cli.source,
+        source: cli.source,
         binary: Some(binary),
         verbose: cli.verbose,
     }

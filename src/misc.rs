@@ -78,3 +78,17 @@ pub fn levenshtein(a: &str, b: &str) -> usize {
     }
     dp[a_len][b_len]
 }
+
+use colored::*;
+pub fn print_errors(error_count: i32) {
+    let msg = if error_count == 1 {
+        "error generated"
+    } else {
+        "errors generated"
+    };
+    println!(
+        "compilation unsuccessful\n{} {}.",
+        error_count.to_string().bright_red(),
+        msg,
+    );
+}

@@ -1,5 +1,15 @@
-# basm2 - A rewrite of the BELLE-Assembler
+# examples - Example programs to be assembled and run under BELLE
 
-Main repository with old assembler is located [here](https://github.com/BlueGummi/belle), this is a rewrite, featuring a stabler, more reliable lexer, parser, and symbol table, as well as containing macros.
+## Programs
 
-Logos is used in here too! Thanks, Logos!
+fib.asm - Fibonacci to the unsigned 16 bit integer limit and golden ratio
+
+spiral.asm - Increments then decrements a register and prints out if it is increasing or decreasing, used for benchmarking
+
+hello.asm - "Hello, world!" program
+
+waste_time.asm - Repeatedly executes NOP instructions
+
+game.asm - Unfinished "game" that would take inputs from the user
+
+count.asm - Count to the unsigned 16 bit integer limit and print to stdout
