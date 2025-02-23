@@ -52,6 +52,7 @@ pub fn process_start(
         }
     }
     *toks = new_toks;
+    print_errc!(*error_count);
 }
 
 fn process_directives(
@@ -150,4 +151,5 @@ fn process_directives(
             }
         }
     }
+    print_errc!(*error_count);
 }

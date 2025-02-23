@@ -47,6 +47,7 @@ pub fn process_includes(
             break;
         }
     }
+    print_errc!(*error_count);
 }
 
 pub fn read_file(file_path: &str) -> String {

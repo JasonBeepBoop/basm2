@@ -108,5 +108,6 @@ pub fn process_macros(
             _ => new_tokens.push((f, v, s)),
         }
     }
+    print_errc!(*error_count);
     *toks = new_tokens;
 }

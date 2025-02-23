@@ -23,11 +23,11 @@ fn main() {
     print_errc!(error_count);
 
     process_includes(&mut toks, &mut error_count);
-    print_errc!(error_count);
+
     process_macros(&mut toks, &mut error_count);
-    print_errc!(error_count);
+
     process_start(&mut toks, &mut error_count);
-    print_errc!(error_count);
+
     if CONFIG.verbose {
         print_msg!("COMPLETE TOKENS");
         for (_, f, _) in &toks {
