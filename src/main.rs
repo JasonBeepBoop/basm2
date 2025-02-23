@@ -5,6 +5,7 @@ fn main() {
     let input_string = r#"
     @include "my.asm"
     mov r0, 'a'
+    .asciiz "Twinkle twinkle little star..."
 label: macro_rules! silly ( arg1: reg, arg2: imm, arg3: reg, arg4: mem) {
     mov %arg1, %arg2
     lea %arg3, %arg4
@@ -37,7 +38,10 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
 
     process_includes(&mut toks, &mut error_count);
     process_macros(&mut toks, &mut error_count);
-
+    if error_count > 0 {
+        print_errors(error_count);
+        std::process::exit(1);
+    }
     if CONFIG.verbose {
         print_msg!("COMPLETE TOKENS");
         for (_, f, _) in &toks {
@@ -62,7 +66,7 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
                         );
                         break;
                     }
-                    if let Some((f, TokenKind::IntLit(val), s)) = toks_iter.peek() {
+                    if let Some((_, TokenKind::IntLit(val), _)) = toks_iter.peek() {
                         start_addr = *val;
                         seen_start = true;
                     } else {
@@ -82,9 +86,14 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
             _ => (),
         }
     }
+    if error_count > 0 {
+        print_errors(error_count);
+        std::process::exit(1);
+    }
     let mut toks_iter = toks.clone().into_iter().peekable();
     let mut l_map = LABEL_MAP.lock().unwrap();
     let mut loc_counter = start_addr;
+
     while let Some((fname, tok, span)) = toks_iter.next() {
         match tok {
             Label(name) => {
@@ -93,7 +102,12 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
                     (fname.to_string(), span.clone(), loc_counter as usize),
                 );
             }
-            Directive(data) => match data.as_str() {
+            Directive(data) => match data.trim() {
+                "start" => {
+                    if let Some((_, TokenKind::IntLit(v), _)) = toks_iter.peek() {
+                        toks_iter.next();
+                    }
+                }
                 "pad" => {
                     if let Some((_, TokenKind::IntLit(v), _)) = toks_iter.peek() {
                         loc_counter += v;
@@ -128,7 +142,7 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
                     }
                 }
                 "asciiz" => {
-                    if let Some((f, TokenKind::StringLit(val), _)) = toks_iter.peek() {
+                    if let Some((_, TokenKind::StringLit(val), _)) = toks_iter.peek() {
                         loc_counter += val.len() as i64;
                         toks_iter.next();
                     } else {
@@ -167,6 +181,20 @@ add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 
             }
         }
     }
+    if error_count > 0 {
+        print_errors(error_count);
+        std::process::exit(1);
+    }
+    let mut new_toks = Vec::new();
+    {
+        for (fname, tok, span) in toks {
+            if let Label(_) = tok {
+            } else {
+                new_toks.push((fname.to_string(), tok.clone(), span.clone()));
+            }
+        }
+    }
+    toks = new_toks;
     println!("{l_map:?}");
     if error_count > 0 {
         print_errors(error_count);
