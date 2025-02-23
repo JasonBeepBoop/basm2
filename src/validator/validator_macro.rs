@@ -1,10 +1,12 @@
 use crate::*;
+use colored::*;
 use std::collections::HashMap;
 
 #[allow(suspicious_double_ref_op)]
 impl MacroContent {
     pub fn is_valid(
         &self,
+        err_file: String,
         orig_data: String,
         toks: Vec<(TokenKind, std::ops::Range<usize>)>, // incoming macro args
     ) -> Result<Vec<(TokenKind, std::ops::Range<usize>)>, Vec<MacroValidatorError>> {
@@ -26,6 +28,7 @@ impl MacroContent {
                 TokenKind::Comma => None,
                 _ => {
                     errs.push(MacroValidatorError {
+                        err_file: err_file.to_string(),
                         err_input: self.full_data.to_string(),
                         err_message: format!("a {token} is not a valid macro argument"),
                         help: None,
@@ -42,7 +45,7 @@ impl MacroContent {
             }
         }
         let mut current_args = Vec::new();
-        for (arg, e) in &self.args {
+        for (_, arg, e) in &self.args {
             current_args.push((arg.arg_type.clone(), e));
         }
         let f = if let Some((_, s)) = parsed_toks.first() {
@@ -52,6 +55,7 @@ impl MacroContent {
         };
         if parsed_toks.len() != self.args.len() {
             errs.push(MacroValidatorError {
+                err_file: err_file.to_string(),
                 err_input: self.full_data.to_string(),
                 err_message: format!(
                     "expected {} arguments, found {}",
@@ -64,23 +68,25 @@ impl MacroContent {
                 mac: self.clone(),
             });
         }
-        for (index, (arg, span)) in self.args.iter().enumerate() {
-            if let Some((d, span)) = parsed_toks.get(index) {
+        for (index, (_, arg, span)) in self.args.iter().enumerate() {
+            if let Some((d, _)) = parsed_toks.get(index) {
                 if *d == arg.arg_type {
                     continue;
                 } else {
                     errs.push(MacroValidatorError {
+                        err_file: err_file.to_string(),
                         err_input: self.full_data.to_string(),
                         err_message: format!("expected {}, found {d}", arg.arg_type),
                         help: None,
-                        orig_input: orig_data.to_string(),
-                        orig_pos: span.clone().clone(),
+                        orig_input: orig_data.to_string(), // this shouldn't panic
+                        orig_pos: parsed_toks.get(index - 1).unwrap().1.clone(),
                         mac: self.clone(),
                     });
                     break;
                 }
             } else {
                 errs.push(MacroValidatorError {
+                    err_file: err_file.to_string(),
                     err_input: self.full_data.to_string(),
                     err_message: String::from("an incorrect number of arguments were supplied"),
                     help: None, // borrow checker is yappin
@@ -91,12 +97,18 @@ impl MacroContent {
                 break;
             }
         } // we need a hashmap of type ident names, TokenKind to record arguments
+        if !errs.is_empty() {
+            return Err(errs);
+        } // don't try to expand it if we have problems
+          //
+          //
+          // macro expandation
         let mut arg_map: HashMap<&String, &crate::TokenKind> = HashMap::new();
         let mut count = 0;
         for element in argument_indices {
             // we no longer need to keep track of argument locations
             if let Some((v, _)) = toks.get(element) {
-                if let Some((l, _)) = self.args.get(count) {
+                if let Some((_, l, _)) = self.args.get(count) {
                     arg_map.insert(&l.name, v);
                     count += 1;
                 }
@@ -109,7 +121,18 @@ impl MacroContent {
                     new_elems.push((v.clone().clone(), span.clone()));
                     continue;
                 } else {
-                    panic!("this is not a macro arg: {name}");
+                    errs.push(MacroValidatorError {
+                        err_file: err_file.to_string(),
+                        err_input: self.full_data.to_string(),
+                        err_message: format!(
+                            "{} was not an argument supplied in the macro",
+                            name.magenta()
+                        ),
+                        help: None, // borrow checker is yappin
+                        orig_input: orig_data.to_string(),
+                        orig_pos: span.clone(),
+                        mac: self.clone(),
+                    });
                 }
             } else if let TokenKind::Instruction(contents) = element {
                 let mut ins_args = Vec::new();
@@ -119,7 +142,18 @@ impl MacroContent {
                             ins_args.push((v.to_tok_kind(), span.clone()));
                             continue;
                         } else {
-                            panic!("this is not a macro arg: {name}");
+                            errs.push(MacroValidatorError {
+                                err_file: err_file.to_string(),
+                                err_input: self.full_data.to_string(),
+                                err_message: format!(
+                                    "{} was not an argument supplied in the macro",
+                                    name.magenta()
+                                ),
+                                help: None, // borrow checker is yappin
+                                orig_input: orig_data.to_string(),
+                                orig_pos: place.clone(),
+                                mac: self.clone(),
+                            });
                         }
                     }
                     ins_args.push((thing.clone(), place.clone()));
@@ -131,6 +165,7 @@ impl MacroContent {
                 };
                 if let Err(e) = reconstruct.is_valid() {
                     errs.push(MacroValidatorError {
+                        err_file: err_file.to_string(),
                         err_input: self.full_data.to_string(),
                         err_message: e,
                         help: None,

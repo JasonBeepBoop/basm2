@@ -4,6 +4,7 @@ use std::fmt;
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            TokenKind::IncludeFile(name) => write!(f, "include file \"{name}\""),
             TokenKind::Newline => write!(f, "newline"),
             TokenKind::Whitespace => write!(f, "whitespace"),
             TokenKind::Tab => write!(f, "tab"),
@@ -37,7 +38,6 @@ impl fmt::Display for TokenKind {
             TokenKind::Xor => write!(f, "caret"),
             TokenKind::Colon => write!(f, "colon"),
             TokenKind::Register(value) => write!(f, "register {} ", value),
-            TokenKind::CharLit(value) => write!(f, "character literal('{}')", value),
             TokenKind::StringLit(value) => write!(f, "string literal(\"{}\")", value),
             TokenKind::IntLit(value) => write!(f, "integer literal({})", value),
             TokenKind::MacroDef(value) => write!(f, "macro definition({})", value),
@@ -57,5 +57,106 @@ impl fmt::Display for TokenKind {
             TokenKind::Expr(value) => write!(f, "expression value({})", value),
             TokenKind::MacroCall(name) => write!(f, "macro call ({name})"),
         }
+    }
+}
+
+impl fmt::Display for MemAddr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "├── Indirect: {}", self.indirect)?;
+        for (i, (arg, _)) in self.content.iter().enumerate() {
+            if i != self.content.len() - 1 {
+                writeln!(f, "    │   ├── {}", arg)?;
+            } else {
+                write!(f, "    │   └── {}", arg)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Display for MacroContent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Macro: {}", self.name.0)?;
+        writeln!(f, "├── Args:")?;
+        for (i, (_, arg, _)) in self.args.iter().enumerate() {
+            if i != self.args.len() - 1 {
+                writeln!(f, "│   ├── {}", arg)?;
+            } else {
+                writeln!(f, "│   └── {}", arg)?;
+            }
+        }
+        writeln!(f, "└── Tokens:")?;
+        for (i, (token, _)) in self.tokens.iter().enumerate() {
+            if i != self.tokens.len() - 1 {
+                writeln!(f, "    ├── {}", token)?;
+            } else {
+                write!(f, "    └── {}", token)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Display for FullArgument {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.name, self.arg_type)
+    }
+}
+
+impl fmt::Display for ArgumentType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ArgumentType::Mem => write!(f, "memory direct"),
+            ArgumentType::Imem => write!(f, "memory indirect"),
+            ArgumentType::Ireg => write!(f, "register indirect"),
+            ArgumentType::Imm => write!(f, "immediate"),
+            ArgumentType::Reg => write!(f, "register"),
+            ArgumentType::Label => write!(f, "label"),
+        }
+    }
+}
+impl InstructionArgument {
+    pub fn get_raw(&self) -> String {
+        match self {
+            InstructionArgument::Mem(_) => String::from("memory direct"),
+            InstructionArgument::Reg(_) => String::from("register"),
+            InstructionArgument::IReg(_) => String::from("register indirect"),
+            InstructionArgument::Imm(_) => String::from("immediate"),
+            InstructionArgument::Ident(_) => String::from("identifier"),
+            InstructionArgument::MacroIdent(_) => String::from("macro identifier"),
+            InstructionArgument::CharLit(_) => String::from("character literal"),
+        }
+    }
+}
+impl fmt::Display for InstructionArgument {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            InstructionArgument::Mem(token) => write!(f, "Mem\n    {}", token),
+            InstructionArgument::Reg(reg) => write!(f, "Reg({})", reg),
+            InstructionArgument::IReg(reg) => write!(f, "IReg({})", reg),
+            InstructionArgument::Imm(imm) => write!(f, "Imm({})", imm),
+            InstructionArgument::Ident(ident) => write!(f, "Ident({})", ident),
+            InstructionArgument::MacroIdent(ident) => write!(f, "MacroIdent({})", ident),
+            InstructionArgument::CharLit(c) => write!(f, "Char({})", c),
+        }
+    }
+}
+
+impl fmt::Display for InstructionData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "Instruction: {}, Expanded from macro {}",
+            self.name, self.expanded
+        )?;
+        writeln!(f, "    └─┐ Args:")?;
+        for (i, (arg, _)) in self.args.iter().enumerate() {
+            if i != self.args.len() - 1 {
+                writeln!(f, "      ├── {}", arg)?;
+            } else {
+                write!(f, "    ┌─┴── {}", arg)?;
+            }
+        }
+        Ok(())
     }
 }

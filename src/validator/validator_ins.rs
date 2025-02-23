@@ -4,6 +4,15 @@ impl InstructionData {
     pub fn is_valid(&self) -> Result<(), String> {
         // Ident is for matching labels - they will be memory addresses
         // Boolean lambda bonanza begins
+        let lhs_val = match self.args.first() {
+            Some(v) => v.0.get_value().to_string(),
+            None => String::from("none"),
+        };
+        let rhs_val = match self.args.get(1) {
+            Some(v) => v.0.get_value().to_string(),
+            None => String::from("none"),
+        };
+
         let (ins_class, ok_val, valid_args) = match self.name.to_lowercase().as_str() {
             "add" | "mov" | "nand" | "div" | "cmp" => (
                 0,
@@ -121,22 +130,30 @@ impl InstructionData {
         if valid_args && ok_val {
             return Ok(());
         }
-        let ovfm = if !ok_val {
+        let ovfm = if !ok_val && valid_args {
             format!(
-                " value too large, max LHS for this instruction are {}, max RHS are {}",
-                LHS_MAXES[ins_class], RHS_MAXES[ins_class]
+                "{}: max LHS for {} is {}, max RHS is {}\n{}: found LHS and RHS values are {} and {}\n ",
+                "value too large".bold(),
+                self.name.to_uppercase().magenta(),
+                LHS_MAXES[ins_class].cyan(), RHS_MAXES[ins_class].cyan(), "note".yellow(), lhs_val.blue(), rhs_val.blue()
             )
         } else {
-            String::from(" ")
+            String::from("")
         };
-        Err(format!(
-            "{}: {} requires {} LHS and {} RHS\n{}: found {lhs} LHS and {rhs} RHS\n{ovfm}",
-            "invalid instruction".bold(),
-            self.name.to_uppercase().magenta(),
-            LHS_DETAIL[ins_class].cyan(),
-            RHS_DETAIL[ins_class].cyan(),
-            "note".yellow(),
-        ))
+        if !valid_args {
+            Err(format!(
+                "{}: {} requires {} LHS and\n{} RHS\n{}: found {} LHS and {} RHS\n\n{ovfm}",
+                "invalid instruction".bold(),
+                self.name.to_uppercase().magenta(),
+                LHS_DETAIL[ins_class].cyan(),
+                RHS_DETAIL[ins_class].cyan(),
+                "note".yellow(),
+                lhs.blue(),
+                rhs.blue(),
+            ))
+        } else {
+            Err(ovfm)
+        }
     }
 }
 

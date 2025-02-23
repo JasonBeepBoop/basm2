@@ -1,139 +1,65 @@
 use basm2::*;
 use colored::*;
-use std::collections::HashMap;
+
 fn main() {
     let input_string = r#"
-
-label: macro_rules! silly ( arg1: reg, arg2: imm, arg3: reg, arg4: mem) { 
+    @include "my.asm"
+    mov r0, 'a'
+label: macro_rules! silly ( arg1: reg, arg2: imm, arg3: reg, arg4: mem) {
     mov %arg1, %arg2
-    lea %arg3, %arg4
+    lea %arg2, %arg4
+    .asciiz "Yap!\y"
 }
     const memloc = 0xff
+    silly!(r0, 3, r4, [(memloc + 3)])
     lea r0, [(memloc + 3)]
-    silly!(r3, 3, r2, [0xff])
 add r0, (((( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 2) & 33) + (( ( 6 * 3 ) + (3 + 3) * 5) & ( 6 * 3 ) + (3 + 3) * 5) * 2 + (3 * 4 + 2) & 33))
+    const c = 23
 "#;
-    println!("{input_string}");
+
     let file = "input.asm";
-    let mut parser = match Parser::new(String::from(file), input_string) {
-        Ok(v) => v,
-        Err(e) => {
-            for er in e {
-                println!("{er}\n");
-            }
-            std::process::exit(1);
-        }
+    let mut error_count = 0;
+
+    if CONFIG.verbose {
+        print_msg!("RAW INPUT");
+        println!("{input_string}");
+    }
+
+    let mut parser = match create_parser(file, input_string, &mut error_count) {
+        Some(parser) => parser,
+        None => std::process::exit(1),
     };
-    let mut toks = match parser.parse() {
-        Ok(tokens) => {
-            //println!("{#:?}", serde_json::to_string_pretty(&tokens).unwrap());
-            /*for (element, _) in &tokens {
-                println!("{}", element);
-            }*/
-            tokens
-        }
-        Err(e) => {
-            for error in e {
-                println!("{error}\n");
-            }
-            std::process::exit(1);
-        }
+
+    let mut toks = match parse_tokens(&mut parser, input_string, &mut error_count) {
+        Some(tokens) => tokens,
+        None => std::process::exit(1),
     };
-    use crate::TokenKind::*;
-    let mut mac_locs = Vec::new();
-    for (index, (element, _)) in toks.iter().enumerate() {
-        if let Macro(data) = element {
-            let mut mac_map = MACRO_MAP.lock().unwrap();
-            mac_map.insert(
-                data.name.0.to_string(),
-                (data.file.to_string(), data.clone()),
-            );
-            mac_locs.push(index);
+
+    process_includes(&mut toks, input_string, &mut error_count);
+    process_macros(&mut toks, input_string, &mut error_count);
+
+    if error_count > 0 {
+        print_errors(error_count);
+        std::process::exit(1);
+    }
+
+    if CONFIG.verbose {
+        print_msg!("COMPLETE TOKENS");
+        for (_, f, _) in &toks {
+            println!("{f}");
         }
     }
-    for element in mac_locs {
-        toks.remove(element);
-    }
-    let mut mac_call_data = Vec::new();
-    let mut in_call = false;
-    let mut curr_mac = None;
-    let mac_map = MACRO_MAP.lock().unwrap();
-    let mut expanded_loc_map: HashMap<usize, Vec<(TokenKind, std::ops::Range<usize>)>> =
-        HashMap::new();
-    let mut expanded_indices = Vec::new();
-    // collecting macro arguments upon macro calls
-    let mut counter = 0;
-    for (element, span) in &toks {
-        counter += 1;
-        if let MacroCall(call) = element {
-            in_call = true;
-            mac_call_data = Vec::new();
-            if let Some(v) = mac_map.get(call) {
-                curr_mac = Some(v);
-            } else {
-                let problem = ParserError {
-                    file: file.to_string(),
-                    help: None,
-                    input: input_string.to_string(),
-                    message: format!(
-                        "{}: with name `{}`",
-                        "cannot find macro".bold(),
-                        call.bold()
-                    ),
-                    start_pos: span.start,
-                    last_pos: span.end,
-                };
-                println!("{problem}\n");
-                curr_mac = None;
-            }
-            continue;
-        }
-        if let RightParen = element {
-            in_call = false;
-            if let Some((_, m)) = curr_mac {
-                match m.is_valid(input_string.to_string(), mac_call_data.clone()) {
-                    Ok(v) => {
-                        expanded_loc_map.insert(counter, v.clone());
-                        expanded_indices.push(counter);
-                    }
-                    Err(e) => {
-                        for e in e {
-                            println!("{e}\n");
-                        }
-                    }
-                }
-            }
-            continue;
-        }
-        if in_call {
-            mac_call_data.push((element.clone(), span.clone()));
-        }
-    }
-    let size = toks.len();
-    for i in 0..size {
-        if expanded_indices.contains(&i) {
-            let expanded = expanded_loc_map.get(&i).unwrap(); // this never fails as all pairs match
-            for element in expanded.iter().rev() {
-                toks.insert(i, element.clone());
-            }
-        }
-    }
-    let mut new_tokens = Vec::new();
-    let mut tokerator = toks.clone().into_iter();
-    while let Some((v, s)) = tokerator.next() {
-        match v {
-            MacroCall(_) => {
-                for (val, _) in tokerator.by_ref() {
-                    if val == RightParen {
-                        break;
-                    }
-                }
-            }
-            _ => new_tokens.push((v, s)),
-        }
-    }
-    toks = new_tokens;
-    for (f, _) in toks {
-        println!("{f}");
-    }
+}
+
+fn print_errors(error_count: i32) {
+    let msg = if error_count == 1 {
+        "error generated "
+    } else {
+        "errors generated"
+    };
+    println!(
+        "compilation unsuccessful\n{} {}.",
+        error_count.to_string().bright_red(),
+        msg,
+    );
 }

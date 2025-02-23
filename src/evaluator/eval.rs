@@ -1,6 +1,5 @@
 use crate::*;
 use std::iter::Peekable;
-
 type Evalex<'a> = Peekable<logos::SpannedIter<'a, tokens::TokenKind>>;
 
 pub fn parse_expression(
@@ -97,7 +96,58 @@ pub fn evaluate_expression(
     token_iter: &mut Evalex,
 ) -> Result<i64, ParserError> {
     let expr = parse_expression(file.to_string(), input, token_iter)?;
-    println!("{}", expr.evaluate());
-    println!("{expr}");
+    if CONFIG.verbose {
+        print_msg!("BEGINNING AST EXPRESSION EVALUATION\n\nRAW EXPR:\n{expr:?}");
+        println!();
+        print_msg!("CONSTRUCTED AST");
+        println!("{}", expr.evaluate());
+        println!("{expr}");
+    }
     Ok(expr.evaluate())
+}
+pub fn parse_expression_after_left_paren(
+    file: &str,
+    input: String,
+    lexer: &mut std::iter::Peekable<logos::SpannedIter<'_, TokenKind>>,
+) -> Result<Option<(i64, logos::Span)>, ParserError> {
+    let mut peek_iter = lexer.clone();
+    while let Some((peek_token, _)) = peek_iter.peek() {
+        match peek_token {
+            Ok(TokenKind::Newline) => break,
+            Ok(TokenKind::Colon) | Ok(TokenKind::LeftBrace) => {
+                return Ok(None);
+            }
+            _ => {
+                peek_iter.next();
+            }
+        }
+    }
+
+    let next_token = lexer.peek().cloned();
+    match next_token {
+        Some((Ok(_), span)) => {
+            let value = evaluate_expression(&file.to_string(), input.to_string(), lexer)?;
+            return Ok(Some((value, span.clone())));
+        }
+        Some((Err(_), span)) => {
+            return Err(ParserError {
+                file: file.to_string(),
+                help: None,
+                input: input.to_string(),
+                message: String::from("invalid token in expression"),
+                start_pos: span.start,
+                last_pos: span.end,
+            });
+        }
+        None => {}
+    }
+
+    Err(ParserError {
+        file: file.to_string(),
+        help: None,
+        input: input.to_string(),
+        message: String::from("failed to parse expression after left paren"),
+        start_pos: 0,
+        last_pos: 0,
+    })
 }

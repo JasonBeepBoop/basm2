@@ -4,7 +4,7 @@ impl Parser<'_> {
     fn parse_single_macro_argument(
         &mut self,
         arg_name: String,
-    ) -> Vec<(FullArgument, std::ops::Range<usize>)> {
+    ) -> Vec<(String, FullArgument, std::ops::Range<usize>)> {
         let input_str = self.input.to_string();
         let (val, loc) = match self.lexer.next() {
             Some((v, l)) => (v, l),
@@ -30,6 +30,7 @@ impl Parser<'_> {
                     return args;
                 }
                 args.push((
+                    self.file.to_string(),
                     FullArgument {
                         name: arg_name.to_string(),
                         arg_type,
@@ -55,7 +56,7 @@ impl Parser<'_> {
     fn parse_macro_arguments(
         &mut self,
         name: (String, std::ops::Range<usize>),
-    ) -> Vec<(TokenKind, std::ops::Range<usize>)> {
+    ) -> Vec<(String, TokenKind, std::ops::Range<usize>)> {
         let input_str = self.input.to_string();
         let mut tokens = Vec::new();
         let mut args = Vec::new();
@@ -129,6 +130,7 @@ impl Parser<'_> {
                     }
                 }
                 tokens.push((
+                    self.file.to_string(),
                     TokenKind::Macro(MacroContent {
                         full_data: self.input.to_string(),
                         file: self.file.to_string(),
@@ -153,7 +155,7 @@ impl Parser<'_> {
         tokens
     }
 
-    pub fn parse_single_macro(&mut self) -> Vec<(TokenKind, std::ops::Range<usize>)> {
+    pub fn parse_single_macro(&mut self) -> Vec<(String, TokenKind, std::ops::Range<usize>)> {
         let input_str = self.input.to_string();
         let mut tokens = Vec::new();
         let (val, loc) = match self.lexer.next() {

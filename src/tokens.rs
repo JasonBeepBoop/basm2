@@ -4,6 +4,9 @@ use serde::Serialize;
 
 #[derive(Logos, Debug, Clone, PartialEq, Serialize)]
 pub enum TokenKind {
+    #[regex(r#"@include\s+"([^"]+)""#, |lex| lex.slice()[8..].trim_start()[1..lex.slice()[8..].trim_start().len() - 1].to_string())]
+    IncludeFile(String),
+
     #[token("\n")]
     Newline,
 
@@ -103,13 +106,10 @@ pub enum TokenKind {
     #[regex("[rR][0-9]", |lex| lex.slice()[1..].parse::<u8>().unwrap())]
     Register(u8),
 
-    #[regex(r"'([^\\']|\\.)'", |lex| parse_char(lex.slice()))]
-    CharLit(char),
-
     #[regex(r#""([^\\"]|\\.)*""#, |lex| parse_string(lex.slice()))]
     StringLit(String),
 
-    #[regex(r"(?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|\d+)", |lex| parse_content(lex.slice()))]
+    #[regex(r"(?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|\d+|'([^\\']|\\.)')", |lex| parse_content(lex.slice()))]
     IntLit(i64),
 
     #[regex(r"macro_rules!", |lex| lex.slice().to_string())]
@@ -158,35 +158,28 @@ fn parse_content(content: &str) -> i64 {
         i64::from_str_radix(&content[2..], 2).unwrap()
     } else if content.starts_with("0o") || content.starts_with("0O") {
         i64::from_str_radix(&content[2..], 8).unwrap()
+    } else if content.starts_with("'") && content.ends_with("'") {
+        let char_content = &content[1..content.len() - 1];
+        if char_content.len() == 1 {
+            char_content.chars().next().unwrap() as i64
+        } else if char_content.starts_with('\\') {
+            match char_content {
+                "\\n" => '\n' as i64,
+                "\\t" => '\t' as i64,
+                "\\r" => '\r' as i64,
+                "\\0" => '\0' as i64,
+                "\\'" => '\'' as i64,
+                "\\\"" => '\"' as i64,
+                "\\\\" => '\\' as i64,
+                _ => '\\' as i64,
+            }
+        } else {
+            panic!("Invalid character literal: {}", content);
+        }
     } else if content.chars().all(|c| c.is_ascii_digit()) {
         content.parse::<i64>().unwrap()
     } else {
-        panic!("lexer failed to parse Integer Literal");
-    }
-}
-
-impl TokenKind {
-    // (M)acro (I)dentifier
-    pub fn get_mi_raw(&self) -> Option<String> {
-        if let TokenKind::MacroIdent(d) = self {
-            Some(d.to_string())
-        } else {
-            None
-        }
-    }
-}
-fn parse_char(s: &str) -> char {
-    let inner = &s[1..s.len() - 1];
-    match inner {
-        "\\n" => '\n',
-        "\\r" => '\r',
-        "\\t" => '\t',
-        "\\0" => '\0',
-        "\\'" => '\'',
-        "\\\"" => '\"',
-        "\\\\" => '\\',
-        _ if inner.len() == 1 => inner.chars().next().unwrap(),
-        _ => panic!("Invalid character escape sequence: {}", s),
+        panic!("lexer failed to parse Integer Literal"); // idk
     }
 }
 fn parse_string(s: &str) -> String {
@@ -204,7 +197,8 @@ fn parse_string(s: &str) -> String {
                 Some('\'') => result.push('\''),
                 Some('"') => result.push('\"'),
                 Some('\\') => result.push('\\'),
-                _ => panic!("Invalid string escape sequence"),
+                Some(v) => result.push(v),
+                None => break,
             }
         } else {
             result.push(c);

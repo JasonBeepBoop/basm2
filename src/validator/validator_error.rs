@@ -5,6 +5,7 @@ use term_size::dimensions;
 
 #[derive(Debug, Clone)]
 pub struct MacroValidatorError {
+    pub err_file: String,
     pub err_input: String,
     pub err_message: String,
     pub help: Option<String>,
@@ -16,7 +17,7 @@ pub struct MacroValidatorError {
 impl fmt::Display for MacroValidatorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s_pos = self.mac.name.1.start;
-        let e_pos = if let Some((_, v)) = self.mac.args.last() {
+        let e_pos = if let Some((_, _, v)) = self.mac.args.last() {
             v.end
         } else {
             0
@@ -42,7 +43,7 @@ impl fmt::Display for MacroValidatorError {
                 self.orig_input.to_string(),
                 self.err_message.to_string(),
                 &Some(String::from("")),
-                self.mac.file.to_string(),
+                self.err_file.to_string(),
                 self.orig_pos.clone(),
             ),
             lines,

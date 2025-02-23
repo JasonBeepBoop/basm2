@@ -4,7 +4,8 @@ use std::iter::Peekable;
 use std::vec::IntoIter;
 
 type ParsingLexer = Peekable<IntoIter<(Result<TokenKind, ()>, std::ops::Range<usize>)>>;
-
+type ParserResult<'a> =
+    Result<Vec<(String, TokenKind, std::ops::Range<usize>)>, &'a Vec<ParserError>>;
 pub struct Parser<'a> {
     pub file: String,
     pub lexer: ParsingLexer,
@@ -31,14 +32,18 @@ impl<'a> Parser<'a> {
             },
             first_pass_tokens?,
         );
+        let toks = match second_pass_tokens {
+            Err(e) => return Err(e),
+            Ok(ref v) => v,
+        };
         Ok(Parser {
             file,
-            lexer: second_pass_tokens.into_iter().peekable(),
+            lexer: toks.clone().into_iter().peekable(),
             input,
             errors,
         })
     }
-    pub fn parse(&mut self) -> Result<Vec<(TokenKind, std::ops::Range<usize>)>, &Vec<ParserError>> {
+    pub fn parse(&mut self) -> ParserResult {
         let mut tokens = Vec::new();
 
         while let Some((token, span)) = self.lexer.next() {
@@ -46,7 +51,7 @@ impl<'a> Parser<'a> {
                 Ok(TokenKind::Whitespace) | Ok(TokenKind::Tab) => {}
                 Ok(TokenKind::MacroDef(_)) => tokens.extend(self.parse_single_macro()),
                 Ok(t) => {
-                    tokens.push((t, span));
+                    tokens.push((self.file.to_string(), t, span));
                 }
                 Err(()) => {
                     self.errors.push(ParserError {
@@ -68,5 +73,49 @@ impl<'a> Parser<'a> {
         }
 
         Ok(tokens)
+    }
+}
+pub fn create_parser<'a>(
+    file: &'a str,
+    input_string: &'a str,
+    error_count: &mut i32,
+) -> Option<Parser<'a>> {
+    if CONFIG.verbose {
+        print_msg!("PARSER CREATION");
+    }
+    match Parser::new(String::from(file), input_string) {
+        Ok(parser) => Some(parser),
+        Err(errors) => {
+            for error in errors {
+                *error_count += 1;
+                println!("{error}\n");
+            }
+            None
+        }
+    }
+}
+
+pub fn parse_tokens(
+    parser: &mut Parser,
+    _input_string: &str,
+    error_count: &mut i32,
+) -> Option<Vec<(String, TokenKind, std::ops::Range<usize>)>> {
+    match parser.parse() {
+        Ok(tokens) => {
+            if CONFIG.verbose {
+                print_msg!("INITIAL TOKENS (UNEXPANDED MACROS AND DIRECTIVES)");
+                for (_, element, _) in &tokens {
+                    println!("{}", element);
+                }
+            }
+            Some(tokens)
+        }
+        Err(errors) => {
+            for error in errors {
+                *error_count += 1;
+                println!("{error}\n");
+            }
+            None
+        }
     }
 }
