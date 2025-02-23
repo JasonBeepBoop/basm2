@@ -4,7 +4,6 @@ use std::collections::HashMap;
 
 pub fn process_macros(
     toks: &mut Vec<(String, TokenKind, std::ops::Range<usize>)>,
-    input_string: &str,
     error_count: &mut i32,
 ) {
     let mut mac_locs = Vec::new();
@@ -19,8 +18,8 @@ pub fn process_macros(
         }
     }
 
-    for element in mac_locs {
-        toks.remove(element);
+    for element in mac_locs.iter().rev() {
+        toks.remove(*element);
     }
 
     let mut mac_call_data = Vec::new();
@@ -48,14 +47,7 @@ pub fn process_macros(
                 } else {
                     None
                 };
-                handle_include_error(
-                    fname,
-                    span,
-                    input_string,
-                    error_count,
-                    "cannot find macro",
-                    info,
-                );
+                handle_include_error(fname, span, error_count, "cannot find macro", info);
                 break;
             }
             continue;
@@ -63,11 +55,7 @@ pub fn process_macros(
         if let RightParen = element {
             in_call = false;
             if let Some((_, m)) = curr_mac {
-                match m.is_valid(
-                    fname.to_string(),
-                    input_string.to_string(),
-                    mac_call_data.clone(),
-                ) {
+                match m.is_valid(fname.to_string(), read_file(fname), mac_call_data.clone()) {
                     Ok(v) => {
                         expanded_loc_map.insert(counter, v.clone());
                         expanded_indices.push(counter);
