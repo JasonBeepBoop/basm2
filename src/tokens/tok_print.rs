@@ -63,8 +63,8 @@ impl fmt::Display for TokenKind {
 impl fmt::Display for MemAddr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "├── Indirect: {}", self.indirect)?;
-        for (i, (arg, _)) in self.content.iter().enumerate() {
-            if i != self.content.len() - 1 {
+        for (i, (arg, _)) in self.data.iter().enumerate() {
+            if i != self.data.len() - 1 {
                 writeln!(f, "    │   ├── {}", arg)?;
             } else {
                 write!(f, "    │   └── {}", arg)?;
@@ -78,16 +78,16 @@ impl fmt::Display for MacroContent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Macro: {}", self.name.0)?;
         writeln!(f, "├── Args:")?;
-        for (i, (_, arg, _)) in self.args.iter().enumerate() {
-            if i != self.args.len() - 1 {
+        for (i, (_, arg, _)) in self.parameters.iter().enumerate() {
+            if i != self.parameters.len() - 1 {
                 writeln!(f, "│   ├── {}", arg)?;
             } else {
                 writeln!(f, "│   └── {}", arg)?;
             }
         }
         writeln!(f, "└── Tokens:")?;
-        for (i, (token, _)) in self.tokens.iter().enumerate() {
-            if i != self.tokens.len() - 1 {
+        for (i, (token, _)) in self.body.iter().enumerate() {
+            if i != self.body.len() - 1 {
                 writeln!(f, "    ├── {}", token)?;
             } else {
                 write!(f, "    └── {}", token)?;
@@ -148,8 +148,8 @@ impl fmt::Display for InstructionData {
             self.name, self.expanded
         )?;
         writeln!(f, "    └─┐ Args:")?;
-        for (i, (arg, _)) in self.args.iter().enumerate() {
-            if i != self.args.len() - 1 {
+        for (i, (arg, _)) in self.operands.iter().enumerate() {
+            if i != self.operands.len() - 1 {
                 writeln!(f, "      ├── {}", arg)?;
             } else {
                 write!(f, "    ┌─┴── {}", arg)?;

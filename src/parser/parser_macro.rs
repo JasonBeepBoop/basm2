@@ -135,8 +135,8 @@ impl Parser<'_> {
                         full_data: self.input.to_string(),
                         file: self.file.to_string(),
                         name,
-                        args,
-                        tokens: macro_tokens,
+                        parameters: args,
+                        body: macro_tokens,
                     }),
                     loc,
                 ));

@@ -17,7 +17,7 @@ pub struct MacroValidatorError {
 impl fmt::Display for MacroValidatorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s_pos = self.mac.name.1.start;
-        let e_pos = if let Some((_, _, v)) = self.mac.args.last() {
+        let e_pos = if let Some((_, _, v)) = self.mac.parameters.last() {
             v.end
         } else {
             0

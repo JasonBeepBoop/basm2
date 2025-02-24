@@ -138,7 +138,7 @@ impl<'a> Parser<'a> {
                     tokens.push((
                         Ok(TokenKind::Mem(MemAddr {
                             indirect: saw_amp,
-                            content: addr_toks,
+                            data: addr_toks,
                         })),
                         span,
                     ));

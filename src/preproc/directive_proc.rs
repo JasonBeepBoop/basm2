@@ -26,7 +26,7 @@ pub fn process_start(
                     *st_gl = *val;
                     seen_start = true;
                 } else if let Some((_, TokenKind::Mem(addr), _)) = toks_iter.peek() {
-                    if let Some((val, _)) = addr.content.first() {
+                    if let Some((val, _)) = addr.data.first() {
                         start_addr = val.get_value();
                         let mut st_gl = START_LOCATION.lock().unwrap();
                         *st_gl = val.get_value();

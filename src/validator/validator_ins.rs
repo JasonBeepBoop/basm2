@@ -4,11 +4,11 @@ impl InstructionData {
     pub fn is_valid(&self) -> Result<(), String> {
         // Ident is for matching labels - they will be memory addresses
         // Boolean lambda bonanza begins
-        let lhs_val = match self.args.first() {
+        let lhs_val = match self.operands.first() {
             Some(v) => v.0.get_value().to_string(),
             None => String::from("none"),
         };
-        let rhs_val = match self.args.get(1) {
+        let rhs_val = match self.operands.get(1) {
             Some(v) => v.0.get_value().to_string(),
             None => String::from("none"),
         };
@@ -16,96 +16,96 @@ impl InstructionData {
         let (ins_class, ok_val, valid_args) = match self.name.to_lowercase().as_str() {
             "add" | "mov" | "nand" | "div" | "cmp" => (
                 0,
-                self.args
+                self.operands
                     .first()
                     .is_some_and(|x| x.0.is_reg() && x.0.get_value() <= 7)
-                    && self.args.get(1).is_some_and(|expr| {
+                    && self.operands.get(1).is_some_and(|expr| {
                         ((expr.0.is_reg() || expr.0.is_ireg()) && expr.0.get_value() <= 9)
                             || (expr.0.is_imm()
                                 && expr.0.get_value() <= 255
                                 && expr.0.get_value() >= -127)
                             || (expr.0.is_imem() && expr.0.get_value() <= 127)
                     }),
-                self.args.len() == 2
-                    && self.args.first().is_some_and(|x| x.0.is_reg())
-                    && self.args.get(1).is_some_and(|expr| {
+                self.operands.len() == 2
+                    && self.operands.first().is_some_and(|x| x.0.is_reg())
+                    && self.operands.get(1).is_some_and(|expr| {
                         expr.0.is_reg() || expr.0.is_ireg() || expr.0.is_imm() || expr.0.is_imem()
                     }),
             ),
             "jmp" | "bo" | "bno" | "bg" | "bl" | "bz" | "bnz" => (
                 1,
-                self.args.first().is_some_and(|a| {
+                self.operands.first().is_some_and(|a| {
                     a.0.is_ident()
                         || (a.0.is_mem() && a.0.get_value() <= 1023)
                         || (a.0.is_ireg() && a.0.get_value() <= 9)
                 }),
-                self.args.len() == 1
+                self.operands.len() == 1
                     && self
-                        .args
+                        .operands
                         .first()
                         .is_some_and(|arg| arg.0.is_ident() || arg.0.is_mem() || arg.0.is_ireg()),
             ),
-            "ret" | "hlt" => (2, self.args.is_empty(), self.args.is_empty()),
+            "ret" | "hlt" => (2, self.operands.is_empty(), self.operands.is_empty()),
             "ld" | "lea" => (
                 3,
-                self.args
+                self.operands
                     .first()
                     .is_some_and(|x| x.0.is_reg() && x.0.get_value() <= 7)
-                    && self.args.get(1).is_some_and(|expr| {
+                    && self.operands.get(1).is_some_and(|expr| {
                         (expr.0.is_mem() && expr.0.get_value() <= 511) || expr.0.is_ident()
                     }),
-                self.args.len() == 2
-                    && self.args.first().is_some_and(|x| x.0.is_reg())
+                self.operands.len() == 2
+                    && self.operands.first().is_some_and(|x| x.0.is_reg())
                     && self
-                        .args
+                        .operands
                         .get(1)
                         .is_some_and(|expr| expr.0.is_mem() || expr.0.is_ident()),
             ),
             "st" => (
                 4,
-                self.args.first().is_some_and(|x| {
+                self.operands.first().is_some_and(|x| {
                     (x.0.is_mem() && x.0.get_value() <= 255)
                         || (x.0.is_ireg() && x.0.get_value() <= 9)
                         || x.0.is_ident()
                 }) && self
-                    .args
+                    .operands
                     .get(1)
                     .is_some_and(|x| x.0.is_reg() && x.0.get_value() <= 7),
-                self.args.len() == 2
+                self.operands.len() == 2
                     && self
-                        .args
+                        .operands
                         .first()
                         .is_some_and(|x| x.0.is_mem() || x.0.is_ireg() || x.0.is_ident())
-                    && self.args.get(1).is_some_and(|expr| expr.0.is_reg()),
+                    && self.operands.get(1).is_some_and(|expr| expr.0.is_reg()),
             ),
             "int" => (
                 5,
-                self.args.first().is_some_and(|x| {
+                self.operands.first().is_some_and(|x| {
                     x.0.is_imm() && x.0.get_value() <= 255 && x.0.get_value() >= -127
                 }),
-                self.args.len() == 1 && self.args.first().is_some_and(|x| x.0.is_imm()),
+                self.operands.len() == 1 && self.operands.first().is_some_and(|x| x.0.is_imm()),
             ),
             "push" => (
                 6,
-                self.args.first().is_some_and(|x| {
+                self.operands.first().is_some_and(|x| {
                     (x.0.is_imm() && x.0.get_value() <= 255 && x.0.get_value() >= -127)
                         || (x.0.is_reg() && x.0.get_value() <= 9)
                 }),
-                self.args.len() == 1
+                self.operands.len() == 1
                     && self
-                        .args
+                        .operands
                         .first()
                         .is_some_and(|x| x.0.is_imm() || x.0.is_reg()),
             ),
             "pop" => (
                 7,
-                self.args.first().is_some_and(|x| {
+                self.operands.first().is_some_and(|x| {
                     (x.0.is_mem() && x.0.get_value() <= 2047)
                         || (x.0.is_reg() && x.0.get_value() <= 9)
                 }),
-                self.args.len() == 1
+                self.operands.len() == 1
                     && self
-                        .args
+                        .operands
                         .first()
                         .is_some_and(|x| x.0.is_mem() || x.0.is_reg()),
             ),
@@ -116,12 +116,12 @@ impl InstructionData {
                 ))
             }
         };
-        let lhs = if let Some((v, _)) = self.args.first() {
+        let lhs = if let Some((v, _)) = self.operands.first() {
             v.get_raw()
         } else {
             String::from("no")
         };
-        let rhs = if let Some((v, _)) = self.args.get(1) {
+        let rhs = if let Some((v, _)) = self.operands.get(1) {
             v.get_raw()
         } else {
             String::from("no")

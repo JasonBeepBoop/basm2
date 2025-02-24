@@ -77,7 +77,7 @@ pub fn encode(
                     ins.name.to_uppercase().magenta()
                 ),
             };
-            match encode_instruction(fname, &opcode, &ins_class, &ins.args) {
+            match encode_instruction(fname, &opcode, &ins_class, &ins.operands) {
                 Ok(v) => encoded_tokens.push(v),
                 Err(e) => return Err(e),
             }
@@ -122,7 +122,7 @@ fn encode_instruction(
 ) -> Result<i16, CodeGenError> {
     let lhs = args.first();
     let rhs = args.get(1);
-    let mut encoded = 0;
+    let mut encoded;
     let l_map = LABEL_MAP.lock().unwrap();
     match *class {
         HLT_TYPE => {
@@ -133,14 +133,14 @@ fn encode_instruction(
             if let Some((Reg(r), _)) = lhs {
                 encoded |= (*r as i16) << 9;
             } else {
-                gen_ice!("CANNOT RETRIEVE REGISTER FROM MOV TYPE 1");
+                gen_ice!("CANNOT RETRIEVE REGISTER OPERAND FROM MOV TYPE INS");
             }
             if let Some((arg, f)) = rhs {
                 match arg {
                     Reg(r) => encoded |= *r as i16,
                     IReg(r) => encoded = encoded | (1 << 6) | (*r as i16),
                     Mem(m) => {
-                        if let Some(v) = m.content.first() {
+                        if let Some(v) = m.data.first() {
                             encoded = encoded | (1 << 7) | (v.0.get_value() as i16);
                         } else {
                             return Err(CodeGenError {
@@ -192,7 +192,7 @@ fn encode_instruction(
                     }
                 }
                 Mem(m) => {
-                    if let Some(v) = m.content.first() {
+                    if let Some(v) = m.data.first() {
                         encoded |= v.0.get_value() as i16; // value limits are checked earlier
                     } else {
                         return Err(CodeGenError {
@@ -243,7 +243,7 @@ fn encode_instruction(
                 }
 
                 Mem(m) => {
-                    if let Some(v) = m.content.first() {
+                    if let Some(v) = m.data.first() {
                         encoded = encoded | (1 << 11) | v.0.get_value() as i16;
                     } else {
                         return Err(CodeGenError {
@@ -300,7 +300,7 @@ fn encode_instruction(
                 }
 
                 Mem(m) => {
-                    if let Some(v) = m.content.first() {
+                    if let Some(v) = m.data.first() {
                         encoded |= v.0.get_value() as i16;
                     } else {
                         return Err(CodeGenError {
@@ -358,7 +358,7 @@ fn encode_instruction(
                 }
 
                 Mem(m) => {
-                    encoded |= (m.content.first().unwrap().0.get_value() as i16) << 3;
+                    encoded |= (m.data.first().unwrap().0.get_value() as i16) << 3;
                 }
 
                 IReg(r) => {

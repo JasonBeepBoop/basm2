@@ -80,7 +80,7 @@ impl Parser<'_> {
                         let ins = InstructionData {
                             expanded: false,
                             name: name.to_string(),
-                            args: args.clone(),
+                            operands: args.clone(),
                         };
                         if let Err(f) = ins.is_valid() {
                             errors.push(ParserError {
@@ -96,7 +96,7 @@ impl Parser<'_> {
                             Ok(TokenKind::Instruction(InstructionData {
                                 expanded: false,
                                 name,
-                                args,
+                                operands: args,
                             })),
                             span,
                         ));

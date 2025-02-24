@@ -4,7 +4,7 @@ use serde::Serialize;
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct MemAddr {
     pub indirect: bool,
-    pub content: Vec<(TokenKind, std::ops::Range<usize>)>,
+    pub data: Vec<(TokenKind, std::ops::Range<usize>)>,
 }
 
 impl MemAddr {
@@ -18,8 +18,8 @@ pub struct MacroContent {
     pub full_data: String,
     pub file: String,
     pub name: (String, std::ops::Range<usize>),
-    pub args: Vec<(String, FullArgument, std::ops::Range<usize>)>,
-    pub tokens: Vec<(TokenKind, std::ops::Range<usize>)>,
+    pub parameters: Vec<(String, FullArgument, std::ops::Range<usize>)>,
+    pub body: Vec<(TokenKind, std::ops::Range<usize>)>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -53,5 +53,5 @@ pub enum InstructionArgument {
 pub struct InstructionData {
     pub expanded: bool,
     pub name: String,
-    pub args: Vec<(InstructionArgument, std::ops::Range<usize>)>,
+    pub operands: Vec<(InstructionArgument, std::ops::Range<usize>)>,
 }

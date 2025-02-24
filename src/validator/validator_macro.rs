@@ -45,7 +45,7 @@ impl MacroContent {
             }
         }
         let mut current_args = Vec::new();
-        for (_, arg, e) in &self.args {
+        for (_, arg, e) in &self.parameters {
             current_args.push((arg.arg_type.clone(), e));
         }
         let f = if let Some((_, s)) = parsed_toks.first() {
@@ -53,13 +53,13 @@ impl MacroContent {
         } else {
             &&(0..0)
         };
-        if parsed_toks.len() != self.args.len() {
+        if parsed_toks.len() != self.parameters.len() {
             errs.push(MacroValidatorError {
                 err_file: err_file.to_string(),
                 err_input: self.full_data.to_string(),
                 err_message: format!(
                     "expected {} arguments, found {}",
-                    self.args.len(),
+                    self.parameters.len(),
                     parsed_toks.len()
                 ),
                 help: None,
@@ -68,7 +68,7 @@ impl MacroContent {
                 mac: self.clone(),
             });
         }
-        for (index, (_, arg, span)) in self.args.iter().enumerate() {
+        for (index, (_, arg, span)) in self.parameters.iter().enumerate() {
             if let Some((d, _)) = parsed_toks.get(index) {
                 if *d == arg.arg_type {
                     continue;
@@ -108,14 +108,14 @@ impl MacroContent {
         for element in argument_indices {
             // we no longer need to keep track of argument locations
             if let Some((v, _)) = toks.get(element) {
-                if let Some((_, l, _)) = self.args.get(count) {
+                if let Some((_, l, _)) = self.parameters.get(count) {
                     arg_map.insert(&l.name, v);
                     count += 1;
                 }
             }
         }
         let mut new_elems = Vec::new();
-        for (element, span) in &self.tokens {
+        for (element, span) in &self.body {
             if let TokenKind::MacroIdent(name) = element {
                 if let Some(v) = arg_map.get(&name) {
                     new_elems.push((v.clone().clone(), span.clone()));
@@ -136,7 +136,7 @@ impl MacroContent {
                 }
             } else if let TokenKind::Instruction(contents) = element {
                 let mut ins_args = Vec::new();
-                for (thing, place) in &contents.args {
+                for (thing, place) in &contents.operands {
                     if let InstructionArgument::MacroIdent(name) = thing {
                         if let Some(v) = arg_map.get(&name) {
                             ins_args.push((v.to_tok_kind(), span.clone()));
@@ -161,7 +161,7 @@ impl MacroContent {
                 let reconstruct = InstructionData {
                     expanded: true,
                     name: contents.name.to_string(),
-                    args: ins_args,
+                    operands: ins_args,
                 };
                 if let Err(e) = reconstruct.is_valid() {
                     errs.push(MacroValidatorError {

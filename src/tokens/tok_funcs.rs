@@ -82,7 +82,7 @@ impl InstructionArgument {
                 }
             }
             Mem(m) => {
-                if let Some((v, _)) = m.content.first() {
+                if let Some((v, _)) = m.data.first() {
                     v.get_value()
                 } else {
                     0
