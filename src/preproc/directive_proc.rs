@@ -8,37 +8,33 @@ pub fn process_start(
     let mut start_addr = 100;
     let mut seen_start = false;
     while let Some((fname, tok, span)) = toks_iter.next() {
-        match tok {
-            Directive(data) => match data.as_str() {
-                "start" => {
-                    if seen_start {
-                        handle_include_error(
-                            &fname,
-                            &span,
-                            error_count,
-                            ".start directive can only be declared once",
-                            None,
-                        );
-                        break;
-                    }
-                    if let Some((_, TokenKind::IntLit(val), _)) = toks_iter.peek() {
-                        start_addr = *val;
-                        seen_start = true;
-                    } else {
-                        handle_include_error(
-                            &fname,
-                            &span,
-                            error_count,
-                            ".start directive must be succeeded by integer literal",
-                            None,
-                        );
-
-                        break;
-                    }
+        if let Directive(data) = tok {
+            if data.as_str() == "start" {
+                if seen_start {
+                    handle_include_error(
+                        &fname,
+                        &span,
+                        error_count,
+                        ".start directive can only be declared once",
+                        None,
+                    );
+                    break;
                 }
-                _ => (),
-            },
-            _ => (),
+                if let Some((_, TokenKind::IntLit(val), _)) = toks_iter.peek() {
+                    start_addr = *val;
+                    seen_start = true;
+                } else {
+                    handle_include_error(
+                        &fname,
+                        &span,
+                        error_count,
+                        ".start directive must be succeeded by integer literal",
+                        None,
+                    );
+
+                    break;
+                }
+            }
         }
     }
     process_directives(toks, error_count, start_addr);
@@ -56,12 +52,12 @@ pub fn process_start(
 }
 
 fn process_directives(
-    toks: &mut Vec<(String, TokenKind, std::ops::Range<usize>)>,
+    toks: &mut [(String, TokenKind, std::ops::Range<usize>)],
     error_count: &mut i32,
     start_addr: i64,
 ) {
     use crate::TokenKind::*;
-    let mut toks_iter = toks.clone().into_iter().peekable();
+    let mut toks_iter = toks.iter().cloned().peekable();
     let mut l_map = LABEL_MAP.lock().unwrap();
     let mut loc_counter = start_addr;
     while let Some((fname, tok, span)) = toks_iter.next() {

@@ -37,5 +37,16 @@ fn main() {
     print_errc!(error_count);
     let l_map = LABEL_MAP.lock().unwrap();
     println!("{l_map:?}");
+    std::mem::drop(l_map);
     print_errc!(error_count);
+    // Code should be valid when this point is reached
+    // we can insert panics (maybe?) to reduce code
+    let mut binary = Vec::new();
+    for (fname, tok, span) in &toks {
+        // we should only have instructions at this point
+        binary.extend(encode(&tok));
+    }
+    for element in binary {
+        println!("{element:016b}");
+    }
 }
