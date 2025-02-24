@@ -22,7 +22,7 @@ impl InstructionData {
                     && self.args.get(1).is_some_and(|expr| {
                         ((expr.0.is_reg() || expr.0.is_ireg()) && expr.0.get_value() <= 9)
                             || (expr.0.is_imm()
-                                && expr.0.get_value() <= 127
+                                && expr.0.get_value() <= 255
                                 && expr.0.get_value() >= -127)
                             || (expr.0.is_imem() && expr.0.get_value() <= 127)
                     }),
@@ -81,14 +81,14 @@ impl InstructionData {
             "int" => (
                 5,
                 self.args.first().is_some_and(|x| {
-                    x.0.is_imm() && x.0.get_value() <= 127 && x.0.get_value() >= -127
+                    x.0.is_imm() && x.0.get_value() <= 255 && x.0.get_value() >= -127
                 }),
                 self.args.len() == 1 && self.args.first().is_some_and(|x| x.0.is_imm()),
             ),
             "push" => (
                 6,
                 self.args.first().is_some_and(|x| {
-                    (x.0.is_imm() && x.0.get_value() <= 127 && x.0.get_value() >= -127)
+                    (x.0.is_imm() && x.0.get_value() <= 255 && x.0.get_value() >= -127)
                         || (x.0.is_reg() && x.0.get_value() <= 9)
                 }),
                 self.args.len() == 1

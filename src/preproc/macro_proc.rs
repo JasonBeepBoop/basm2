@@ -47,7 +47,7 @@ pub fn process_macros(
                 } else {
                     None
                 };
-                handle_include_error(fname, span, error_count, "cannot find macro", info);
+                handle_core_error(fname, span, error_count, "cannot find macro", info);
                 break;
             }
             continue;

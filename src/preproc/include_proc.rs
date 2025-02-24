@@ -18,7 +18,7 @@ pub fn process_includes(
             if let IncludeFile(new_file) = element {
                 has_include = true;
                 if *new_file == *fname {
-                    handle_include_error(
+                    handle_core_error(
                         fname,
                         loc,
                         error_count,
@@ -75,23 +75,4 @@ pub fn read_file(file_path: &str) -> String {
             std::process::exit(1);
         }
     }
-}
-
-pub fn handle_include_error(
-    fname: &str,
-    loc: &std::ops::Range<usize>,
-    error_count: &mut i32,
-    message: &str,
-    help: Option<String>,
-) {
-    let problem = ParserError {
-        file: fname.to_string(),
-        help,
-        input: read_file(fname),
-        message: message.to_string(),
-        start_pos: loc.start,
-        last_pos: loc.end,
-    };
-    *error_count += 1;
-    println!("{problem}\n");
 }

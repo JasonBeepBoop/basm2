@@ -109,7 +109,7 @@ pub enum TokenKind {
     #[regex(r#""([^\\"]|\\.)*""#, |lex| parse_string(lex.slice()))]
     StringLit(String),
 
-    #[regex(r"(?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|\d+|'([^\\']|\\.)')", |lex| parse_content(lex.slice()))]
+    #[regex(r"(?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|-?\d+|'([^\\']|\\.)')", |lex| parse_content(lex.slice()))]
     IntLit(i64),
 
     #[regex(r"macro_rules!", |lex| lex.slice().to_string())]
@@ -176,10 +176,10 @@ fn parse_content(content: &str) -> i64 {
         } else {
             panic!("Invalid character literal: {}", content);
         }
-    } else if content.chars().all(|c| c.is_ascii_digit()) {
+    } else if content.chars().all(|c| c.is_ascii_digit() || c == '-') {
         content.parse::<i64>().unwrap()
     } else {
-        panic!("lexer failed to parse Integer Literal"); // idk
+        panic!("Failed to parse integer literal")
     }
 }
 fn parse_string(s: &str) -> String {

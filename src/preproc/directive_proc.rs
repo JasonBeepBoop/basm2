@@ -11,7 +11,7 @@ pub fn process_start(
         if let Directive(data) = tok {
             if data.as_str() == "start" {
                 if seen_start {
-                    handle_include_error(
+                    handle_core_error(
                         &fname,
                         &span,
                         error_count,
@@ -25,12 +25,29 @@ pub fn process_start(
                     let mut st_gl = START_LOCATION.lock().unwrap();
                     *st_gl = *val;
                     seen_start = true;
+                } else if let Some((_, TokenKind::Mem(addr), _)) = toks_iter.peek() {
+                    if let Some((val, _)) = addr.content.first() {
+                        start_addr = val.get_value();
+                        let mut st_gl = START_LOCATION.lock().unwrap();
+                        *st_gl = val.get_value();
+                        seen_start = true;
+                    } else {
+                        handle_core_error(
+                            &fname,
+                            &span,
+                            error_count,
+                            ".start directive must be succeeded by memory literal",
+                            None,
+                        );
+
+                        break;
+                    }
                 } else {
-                    handle_include_error(
+                    handle_core_error(
                         &fname,
                         &span,
                         error_count,
-                        ".start directive must be succeeded by integer literal",
+                        ".start directive must be succeeded by memory address",
                         None,
                     );
 
@@ -74,6 +91,8 @@ fn process_directives(
                 "start" => {
                     if let Some((_, TokenKind::IntLit(_), _)) = toks_iter.peek() {
                         toks_iter.next();
+                    } else if let Some((_, TokenKind::Mem(_), _)) = toks_iter.peek() {
+                        toks_iter.next();
                     }
                 }
                 "pad" => {
@@ -81,7 +100,7 @@ fn process_directives(
                         loc_counter += v;
                         toks_iter.next();
                     } else {
-                        handle_include_error(
+                        handle_core_error(
                             &fname,
                             &span,
                             error_count,
@@ -99,7 +118,7 @@ fn process_directives(
                         loc_counter += 1;
                         toks_iter.next();
                     } else {
-                        handle_include_error(
+                        handle_core_error(
                             &fname,
                             &span,
                             error_count,
@@ -114,7 +133,7 @@ fn process_directives(
                         loc_counter += val.len() as i64;
                         toks_iter.next();
                     } else {
-                        handle_include_error(
+                        handle_core_error(
                             &fname,
                             &span,
                             error_count,
@@ -125,7 +144,7 @@ fn process_directives(
                     }
                 }
                 _ => {
-                    handle_include_error(
+                    handle_core_error(
                         &fname,
                         &span,
                         error_count,
@@ -138,7 +157,7 @@ fn process_directives(
             Instruction(_) => loc_counter += 1,
             Newline => (),
             _ => {
-                handle_include_error(
+                handle_core_error(
                     &fname,
                     &span,
                     error_count,

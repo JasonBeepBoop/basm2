@@ -27,33 +27,17 @@ const B_TYPE: u8 = 2;
 const POP_TYPE: u8 = 3;
 const LD_TYPE: u8 = 4;
 const ST_TYPE: u8 = 5;
+const MOV_TYPE_ONE: u8 = 6;
 type CodeGenError = ParserError;
 use std::ops::Range;
 
-macro_rules! gen_ice { // Generate (I)nternal (C)ompiler (E)rror
-    ($($arg:tt)*) => {
-        {
-            eprintln!(
-                "!!! {} !!! [{}] IN {}:{}:{}\nMESSAGE: {} ",
-                "FATAL".red().bold(),
-                "INTERNAL COMPILER ERROR".red().bold(),
-                file!(),
-                line!(),
-                column!(),
-                format!($($arg)*),
-            );
-            std::process::exit(1);
-        }
-    };
-}
-
 pub fn encode(
-    ins: &TokenKind,
+    ins: (&String, &TokenKind, &Range<usize>),
     fname: &String,
     next_ins: Option<&(String, TokenKind, Range<usize>)>,
 ) -> Result<Vec<i16>, CodeGenError> {
     let mut encoded_tokens = Vec::new();
-    match ins {
+    match &ins.1 {
         TokenKind::Instruction(ins) => {
             let (opcode, ins_class) = match ins.name.to_lowercase().as_str() {
                 // all instructions should be valid when this is reached, as it is validated in
@@ -84,8 +68,8 @@ pub fn encode(
                 "bnz" => (BNZ_OP, B_TYPE),
                 "cmp" => (CMP_OP, MOV_TYPE),
                 "nand" => (NAND_OP, MOV_TYPE),
-                "push" => (PUSH_OP, MOV_TYPE),
-                "int" => (INT_OP, MOV_TYPE),
+                "push" => (PUSH_OP, MOV_TYPE_ONE),
+                "int" => (INT_OP, MOV_TYPE_ONE),
                 "mov" => (MOV_OP, MOV_TYPE),
                 "lea" => (LEA_OP, LD_TYPE),
                 _ => gen_ice!(
@@ -100,13 +84,27 @@ pub fn encode(
         }
         TokenKind::Directive(name) => match name.to_lowercase().as_str() {
             "asciiz" => {
-                for letter in next_ins.unwrap().1.get_str().chars() {
-                    encoded_tokens.push(letter as i16);
+                if let Some((_, TokenKind::StringLit(_), _)) = next_ins {
+                    for letter in next_ins.unwrap().1.get_str().chars() {
+                        encoded_tokens.push(letter as i16);
+                    }
+                } else {
+                    return Err(CodeGenError {
+                        file: fname.to_string(),
+                        help: None,
+                        input: read_file(fname),
+                        message: String::from(
+                            "ASCIIZ directive must be succeeded by string literal",
+                        ),
+                        start_pos: ins.2.start,
+                        last_pos: ins.2.end,
+                    });
                 }
             }
             "word" => {
                 encoded_tokens.push(next_ins.unwrap().1.get_value() as i16);
             }
+            "start" => (),
             _ => gen_ice!("DIRECTIVE MATCH FAILED: {name} NOT RECOGNIZED"),
         },
         _ => {}
@@ -135,7 +133,7 @@ fn encode_instruction(
             if let Some((Reg(r), _)) = lhs {
                 encoded |= (*r as i16) << 9;
             } else {
-                gen_ice!("INSTRUCTION ENCODE APPEARS TO HAVE EMPTY MEMORY")
+                gen_ice!("CANNOT RETRIEVE REGISTER FROM MOV TYPE 1");
             }
             if let Some((arg, f)) = rhs {
                 match arg {
@@ -160,8 +158,6 @@ fn encode_instruction(
                     Imm(_) => encoded = encoded | (1 << 8) | arg.get_imm(),
                     _ => gen_ice!("MOV TYPE INSTRUCTION HAS EMPTY/INVALID RHS"),
                 }
-            } else {
-                gen_ice!("MOV TYPE INSTRUCTION APPEARS TO NOT HAVE RHS")
             }
         }
         B_TYPE => {
@@ -322,44 +318,61 @@ fn encode_instruction(
                 ),
             }
         }
-        ST_TYPE => match &lhs.unwrap().0 {
-            Ident(i) => {
-                if let Some((name, span, value)) = l_map.get(i) {
-                    if *value >= 256 {
-                        return Err(CodeGenError {
-                            file: name.to_string(),
-                            help: None,
-                            input: read_file(name),
-                            message: format!(
-                                "the address of label \"{i}\" cannot fit within 8 bits"
-                            ),
-                            start_pos: span.start,
-                            last_pos: span.end,
-                        });
+        MOV_TYPE_ONE => {
+            encoded = opcode << 12;
+            match &lhs.unwrap().0 {
+                Imm(_) => encoded = encoded | (1 << 8) | lhs.unwrap().0.get_imm(),
+                Reg(r) => encoded = encoded | *r as i16,
+                _ => gen_ice!("MOV TYPE ONE DID NOT HAVE ARG"),
+            }
+        }
+        ST_TYPE => {
+            encoded = opcode << 12;
+            match &lhs.unwrap().0 {
+                Ident(i) => {
+                    if let Some((name, span, value)) = l_map.get(i) {
+                        if *value >= 256 {
+                            return Err(CodeGenError {
+                                file: name.to_string(),
+                                help: None,
+                                input: read_file(name),
+                                message: format!(
+                                    "the address of label \"{i}\" cannot fit within 8 bits"
+                                ),
+                                start_pos: span.start,
+                                last_pos: span.end,
+                            });
+                        } else {
+                            encoded |= (*value as i16) << 3;
+                        }
                     } else {
-                        encoded |= (*value as i16) << 3;
+                        return Err(CodeGenError {
+                            file: fname.to_string(),
+                            help: None,
+                            input: read_file(fname),
+                            message: format!("cannot find label \"{i}\""),
+                            start_pos: args.get(1).unwrap().1.start,
+                            last_pos: args.get(1).unwrap().1.end,
+                        });
                     }
-                } else {
-                    return Err(CodeGenError {
-                        file: fname.to_string(),
-                        help: None,
-                        input: read_file(fname),
-                        message: format!("cannot find label \"{i}\""),
-                        start_pos: args.get(1).unwrap().1.start,
-                        last_pos: args.get(1).unwrap().1.end,
-                    });
+                }
+
+                Mem(m) => {
+                    encoded |= (m.content.first().unwrap().0.get_value() as i16) << 3;
+                }
+
+                IReg(r) => {
+                    encoded = encoded | (1 << 11) | ((*r as i16) << 7);
+                }
+                _ => {
+                    gen_ice!("ST INSTRUCTION HAS INVALID LHS - THIS SHOULD'VE BEEN CAUGHT EARLIER")
                 }
             }
-
-            Mem(m) => {
-                encoded |= (m.content.first().unwrap().0.get_value() as i16) << 3;
+            match &rhs.unwrap().0 {
+                Reg(r) => encoded = encoded | (*r as i16),
+                _ => panic!(),
             }
-
-            IReg(r) => {
-                encoded = encoded | (1 << 11) | ((*r as i16) << 3);
-            }
-            _ => gen_ice!("ST INSTRUCTION HAS INVALID LHS - THIS SHOULD'VE BEEN CAUGHT EARLIER"),
-        },
+        }
         _ => gen_ice!("INVALID INSTRUCTION TYPE IN CODEGEN"),
     }
     Ok(encoded)

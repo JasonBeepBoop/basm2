@@ -7,6 +7,25 @@ macro_rules! print_errc {
         }
     };
 }
+
+#[macro_export]
+macro_rules! gen_ice { // Generate (I)nternal (C)ompiler (E)rror
+    ($($arg:tt)*) => {
+        {
+            eprintln!(
+                "!!! {} !!! [{}] IN {}:{}:{}\nMESSAGE: {} ",
+                "FATAL".red().bold(),
+                "INTERNAL COMPILER ERROR".red().bold(),
+                file!(),
+                line!(),
+                column!(),
+                format!($($arg)*),
+            );
+            std::process::exit(1);
+        }
+    };
+}
+
 #[macro_export]
 macro_rules! print_msg {
     ($($arg:tt)*) => {
@@ -100,4 +119,24 @@ pub fn print_errors(error_count: i32) {
         error_count.to_string().bright_red(),
         msg,
     );
+}
+
+use crate::*;
+pub fn handle_core_error(
+    fname: &str,
+    loc: &std::ops::Range<usize>,
+    error_count: &mut i32,
+    message: &str,
+    help: Option<String>,
+) {
+    let problem = ParserError {
+        file: fname.to_string(),
+        help,
+        input: read_file(fname),
+        message: message.to_string(),
+        start_pos: loc.start,
+        last_pos: loc.end,
+    };
+    *error_count += 1;
+    println!("{problem}\n");
 }
