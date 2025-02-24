@@ -22,6 +22,8 @@ pub fn process_start(
                 }
                 if let Some((_, TokenKind::IntLit(val), _)) = toks_iter.peek() {
                     start_addr = *val;
+                    let mut st_gl = START_LOCATION.lock().unwrap();
+                    *st_gl = *val;
                     seen_start = true;
                 } else {
                     handle_include_error(
@@ -101,7 +103,7 @@ fn process_directives(
                             &fname,
                             &span,
                             error_count,
-                            ".word directive must be succeeded by literal",
+                            &format!("{} must be succeeded by literal or identifier", data.trim()),
                             None,
                         );
                         break;
@@ -116,7 +118,7 @@ fn process_directives(
                             &fname,
                             &span,
                             error_count,
-                            ".asciiz directive must be succeeded by string",
+                            &format!("{} must be succeeded by string", data.trim()),
                             None,
                         );
                         break;

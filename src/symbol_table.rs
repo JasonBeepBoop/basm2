@@ -16,6 +16,8 @@ pub static LABEL_MAP: Table<(String, Range<usize>, usize)> =
 
 pub static MACRO_MAP: Table<(String, MacroContent)> = Lazy::new(|| Mutex::new(HashMap::new()));
 
+pub static START_LOCATION: Lazy<Mutex<i64>> = Lazy::new(|| Mutex::new(100));
+
 // - Option<String>: messages about similar entries found (if any)
 // - Vec<(String, Range<usize>)>: (file, place) tuples for similar entries
 pub fn find_similar_entries(input: &str) -> (Option<String>, Vec<(String, Range<usize>)>) {

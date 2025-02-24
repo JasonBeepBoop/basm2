@@ -22,6 +22,12 @@ impl ArgumentType {
 }
 
 impl TokenKind {
+    pub fn get_str(&self) -> String {
+        if let TokenKind::StringLit(s) = self {
+            return s.to_string();
+        }
+        panic!()
+    }
     pub fn is_imm(&self) -> bool {
         matches!(self, TokenKind::IntLit(_) | TokenKind::MacroIdent(_))
     }

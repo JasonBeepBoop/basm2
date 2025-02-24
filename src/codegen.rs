@@ -1,5 +1,5 @@
 use crate::*;
-
+use colored::*;
 pub const HLT_OP: i16 = 0b0000;
 pub const ADD_OP: i16 = 0b0001;
 pub const BO_OP: i16 = 0b00100;
@@ -29,8 +29,27 @@ const LD_TYPE: u8 = 4;
 const ST_TYPE: u8 = 5;
 type CodeGenError = ParserError;
 use std::ops::Range;
+
+macro_rules! gen_ice { // Generate (I)nternal (C)ompiler (E)rror
+    ($($arg:tt)*) => {
+        {
+            eprintln!(
+                "!!! {} !!! [{}] IN {}:{}:{}\nMESSAGE: {} ",
+                "FATAL".red().bold(),
+                "INTERNAL COMPILER ERROR".red().bold(),
+                file!(),
+                line!(),
+                column!(),
+                format!($($arg)*),
+            );
+            std::process::exit(1);
+        }
+    };
+}
+
 pub fn encode(
     ins: &TokenKind,
+    fname: &String,
     next_ins: Option<&(String, TokenKind, Range<usize>)>,
 ) -> Result<Vec<i16>, CodeGenError> {
     let mut encoded_tokens = Vec::new();
@@ -69,20 +88,36 @@ pub fn encode(
                 "int" => (INT_OP, MOV_TYPE),
                 "mov" => (MOV_OP, MOV_TYPE),
                 "lea" => (LEA_OP, LD_TYPE),
-                _ => panic!(":3"),
+                _ => gen_ice!(
+                    "INSTRUCTION MATCH FAILED: {} WAS NOT RECOGNIZED.",
+                    ins.name.to_uppercase().magenta()
+                ),
             };
-            match encode_instruction(&opcode, &ins_class, &ins.args) {
+            match encode_instruction(fname, &opcode, &ins_class, &ins.args) {
                 Ok(v) => encoded_tokens.push(v),
                 Err(e) => return Err(e),
             }
         }
-        _ => todo!(),
+        TokenKind::Directive(name) => match name.to_lowercase().as_str() {
+            "asciiz" => {
+                for letter in next_ins.unwrap().1.get_str().chars() {
+                    encoded_tokens.push(letter as i16);
+                }
+            }
+            "word" => {
+                encoded_tokens.push(next_ins.unwrap().1.get_value() as i16);
+            }
+            _ => gen_ice!("DIRECTIVE MATCH FAILED: {name} NOT RECOGNIZED"),
+        },
+        _ => {}
     }
 
-    Ok(vec![])
+    Ok(encoded_tokens)
 }
 
+use crate::InstructionArgument::*;
 fn encode_instruction(
+    fname: &String,
     opcode: &i16,
     class: &u8,
     args: &[(InstructionArgument, std::ops::Range<usize>)],
@@ -92,72 +127,240 @@ fn encode_instruction(
     let mut encoded = 0;
     let l_map = LABEL_MAP.lock().unwrap();
     match *class {
+        HLT_TYPE => {
+            encoded = opcode << 12;
+        }
         MOV_TYPE => {
             encoded = opcode << 12;
-            if let Some((InstructionArgument::Reg(r), _)) = lhs {
+            if let Some((Reg(r), _)) = lhs {
                 encoded |= (*r as i16) << 9;
             } else {
-                panic!("oops");
+                gen_ice!("INSTRUCTION ENCODE APPEARS TO HAVE EMPTY MEMORY")
             }
-            if let Some((arg, _)) = rhs {
+            if let Some((arg, f)) = rhs {
                 match arg {
-                    InstructionArgument::Reg(r) => encoded |= *r as i16,
-                    InstructionArgument::IReg(r) => encoded = encoded | (1 << 6) | (*r as i16),
-                    InstructionArgument::Mem(m) => {
-                        if m.is_indirect() {
-                            if let Some(v) = m.content.first() {
-                                encoded = encoded | (1 << 7) | (v.0.get_value() as i16);
-                            } else {
-                                panic!();
-                            }
+                    Reg(r) => encoded |= *r as i16,
+                    IReg(r) => encoded = encoded | (1 << 6) | (*r as i16),
+                    Mem(m) => {
+                        if let Some(v) = m.content.first() {
+                            encoded = encoded | (1 << 7) | (v.0.get_value() as i16);
                         } else {
-                            panic!("when the:");
+                            return Err(CodeGenError {
+                                file: fname.to_string(),
+                                help: None,
+                                input: read_file(fname),
+                                message: String::from(
+                                    "MOV type instruction appears to have empty memory",
+                                ),
+                                start_pos: f.start,
+                                last_pos: f.end,
+                            });
                         }
                     }
-                    InstructionArgument::Imm(l) => encoded = encoded | (1 << 8) | arg.get_imm(),
-                    _ => panic!("yah"),
+                    Imm(_) => encoded = encoded | (1 << 8) | arg.get_imm(),
+                    _ => gen_ice!("MOV TYPE INSTRUCTION HAS EMPTY/INVALID RHS"),
                 }
             } else {
-                panic!("silly me");
+                gen_ice!("MOV TYPE INSTRUCTION APPEARS TO NOT HAVE RHS")
             }
         }
         B_TYPE => {
             encoded = opcode << 11;
-            use crate::InstructionArgument::*;
             match &lhs.unwrap().0 {
                 // safe to unwrap - checked earlier
                 Ident(i) => {
                     if let Some((name, span, value)) = l_map.get(i) {
                         if *value >= 1024 {
-                            panic!("too big");
+                            return Err(CodeGenError {
+                                file: name.to_string(),
+                                help: None,
+                                input: read_file(name),
+                                message: format!(
+                                    "the address of label \"{i}\" cannot fit within 10 bits"
+                                ),
+                                start_pos: span.start,
+                                last_pos: span.end,
+                            });
                         } else {
                             encoded |= *value as i16;
                         }
                     } else {
-                        panic!("nope can't find ident");
+                        return Err(CodeGenError {
+                            file: fname.to_string(),
+                            help: None,
+                            input: read_file(fname),
+                            message: format!("cannot find label \"{i}\""),
+                            start_pos: args.get(1).unwrap().1.start,
+                            last_pos: args.get(1).unwrap().1.end,
+                        });
                     }
                 }
                 Mem(m) => {
-                    if !m.is_indirect() {
-                        if let Some(v) = m.content.first() {
-                            encoded |= v.0.get_value() as i16;
-                        } else {
-                            panic!("memory should be direct");
-                        }
+                    if let Some(v) = m.content.first() {
+                        encoded |= v.0.get_value() as i16; // value limits are checked earlier
                     } else {
-                        panic!("when the:");
+                        return Err(CodeGenError {
+                            file: fname.to_string(),
+                            help: None,
+                            input: read_file(fname),
+                            message: String::from("Branch instruction memory appears empty"),
+                            start_pos: args.first().unwrap().1.start,
+                            last_pos: args.first().unwrap().1.end,
+                        });
                     }
                 }
                 IReg(r) => {
                     encoded = encoded | (1 << 10) | (*r as i16);
                 }
-                _ => panic!("well well"),
+                _ => gen_ice!("BRANCH INSTRUCTION HAS INVALID LHS"),
             }
         }
-        POP_TYPE => {}
-        LD_TYPE => {}
-        ST_TYPE => {}
-        _ => panic!(),
+        POP_TYPE => {
+            encoded = opcode << 12;
+            match &lhs.unwrap().0 {
+                Ident(i) => {
+                    if let Some((name, span, value)) = l_map.get(i) {
+                        if *value >= 2048 {
+                            return Err(CodeGenError {
+                                file: name.to_string(),
+                                help: None,
+                                input: read_file(name),
+                                message: format!(
+                                    "the address of label \"{i}\" cannot fit within 11 bits"
+                                ),
+                                start_pos: span.start,
+                                last_pos: span.end,
+                            });
+                        } else {
+                            encoded = encoded | (1 << 11) | (*value as i16);
+                        }
+                    } else {
+                        return Err(CodeGenError {
+                            file: fname.to_string(),
+                            help: None,
+                            input: read_file(fname),
+                            message: format!("cannot find label \"{i}\""),
+                            start_pos: args.get(1).unwrap().1.start,
+                            last_pos: args.get(1).unwrap().1.end,
+                        });
+                    }
+                }
+
+                Mem(m) => {
+                    if let Some(v) = m.content.first() {
+                        encoded = encoded | (1 << 11) | v.0.get_value() as i16;
+                    } else {
+                        return Err(CodeGenError {
+                            file: fname.to_string(),
+                            help: None,
+                            input: read_file(fname),
+                            message: String::from("POP instruction memory appears empty"),
+                            start_pos: args.first().unwrap().1.start,
+                            last_pos: args.first().unwrap().1.end,
+                        });
+                    }
+                }
+
+                Reg(r) => encoded |= *r as i16,
+                _ => {
+                    gen_ice!("POP INSTRUCTION HAS INVALID LHS - THIS SHOULD'VE BEEN CAUGHT EARLIER")
+                }
+            }
+        }
+        LD_TYPE => {
+            encoded = opcode << 12;
+            if let Some((Reg(r), _)) = lhs {
+                encoded |= (*r as i16) << 9;
+            } else {
+                gen_ice!("LD INSTRUCTION LHS DOES NOT APPEAR TO BE REGISTER");
+            }
+            match &rhs.unwrap().0 {
+                Ident(i) => {
+                    if let Some((name, span, value)) = l_map.get(i) {
+                        if *value >= 512 {
+                            return Err(CodeGenError {
+                                file: name.to_string(),
+                                help: None,
+                                input: read_file(name),
+                                message: format!(
+                                    "the address of label \"{i}\" cannot fit within 9 bits"
+                                ),
+                                start_pos: span.start,
+                                last_pos: span.end,
+                            });
+                        } else {
+                            encoded |= *value as i16;
+                        }
+                    } else {
+                        return Err(CodeGenError {
+                            file: fname.to_string(),
+                            help: None,
+                            input: read_file(fname),
+                            message: format!("cannot find label \"{i}\""),
+                            start_pos: args.get(1).unwrap().1.start,
+                            last_pos: args.get(1).unwrap().1.end,
+                        });
+                    }
+                }
+
+                Mem(m) => {
+                    if let Some(v) = m.content.first() {
+                        encoded |= v.0.get_value() as i16;
+                    } else {
+                        return Err(CodeGenError {
+                            file: fname.to_string(),
+                            help: None,
+                            input: read_file(fname),
+                            message: String::from("LD/LEA instruction memory appears empty"),
+                            start_pos: args.first().unwrap().1.start,
+                            last_pos: args.first().unwrap().1.end,
+                        });
+                    }
+                }
+                _ => gen_ice!(
+                    "LEA/LD INSTRUCTION HAS INVALID RHS - THIS SHOULD'VE BEEN CAUGHT EARLIER"
+                ),
+            }
+        }
+        ST_TYPE => match &lhs.unwrap().0 {
+            Ident(i) => {
+                if let Some((name, span, value)) = l_map.get(i) {
+                    if *value >= 256 {
+                        return Err(CodeGenError {
+                            file: name.to_string(),
+                            help: None,
+                            input: read_file(name),
+                            message: format!(
+                                "the address of label \"{i}\" cannot fit within 8 bits"
+                            ),
+                            start_pos: span.start,
+                            last_pos: span.end,
+                        });
+                    } else {
+                        encoded |= (*value as i16) << 3;
+                    }
+                } else {
+                    return Err(CodeGenError {
+                        file: fname.to_string(),
+                        help: None,
+                        input: read_file(fname),
+                        message: format!("cannot find label \"{i}\""),
+                        start_pos: args.get(1).unwrap().1.start,
+                        last_pos: args.get(1).unwrap().1.end,
+                    });
+                }
+            }
+
+            Mem(m) => {
+                encoded |= (m.content.first().unwrap().0.get_value() as i16) << 3;
+            }
+
+            IReg(r) => {
+                encoded = encoded | (1 << 11) | ((*r as i16) << 3);
+            }
+            _ => gen_ice!("ST INSTRUCTION HAS INVALID LHS - THIS SHOULD'VE BEEN CAUGHT EARLIER"),
+        },
+        _ => gen_ice!("INVALID INSTRUCTION TYPE IN CODEGEN"),
     }
     Ok(encoded)
 }
