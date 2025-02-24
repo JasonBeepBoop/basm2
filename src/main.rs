@@ -42,11 +42,15 @@ fn main() {
     // Code should be valid when this point is reached
     // we can insert panics (maybe?) to reduce code
     let mut binary = Vec::new();
+    let mut ind = 0;
     for (fname, tok, span) in &toks {
+        ind += 1;
         // we should only have instructions at this point
-        binary.extend(encode(&tok));
+        binary.extend(encode(tok, toks.get(ind + 1)));
     }
     for element in binary {
-        println!("{element:016b}");
+        for value in element {
+            println!("{value:016b}");
+        }
     }
 }

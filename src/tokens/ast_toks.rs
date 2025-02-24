@@ -7,6 +7,12 @@ pub struct MemAddr {
     pub content: Vec<(TokenKind, std::ops::Range<usize>)>,
 }
 
+impl MemAddr {
+    pub fn is_indirect(&self) -> bool {
+        self.indirect
+    }
+}
+
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct MacroContent {
     pub full_data: String,
@@ -41,7 +47,6 @@ pub enum InstructionArgument {
     Imm(i64),
     Ident(String),
     MacroIdent(String),
-    CharLit(char),
 }
 
 #[derive(Debug, PartialEq, Serialize, Clone)]

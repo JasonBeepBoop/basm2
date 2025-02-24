@@ -124,7 +124,6 @@ impl InstructionArgument {
             InstructionArgument::Imm(_) => String::from("immediate"),
             InstructionArgument::Ident(_) => String::from("identifier"),
             InstructionArgument::MacroIdent(_) => String::from("macro identifier"),
-            InstructionArgument::CharLit(_) => String::from("character literal"),
         }
     }
 }
@@ -137,7 +136,6 @@ impl fmt::Display for InstructionArgument {
             InstructionArgument::Imm(imm) => write!(f, "Imm({})", imm),
             InstructionArgument::Ident(ident) => write!(f, "Ident({})", ident),
             InstructionArgument::MacroIdent(ident) => write!(f, "MacroIdent({})", ident),
-            InstructionArgument::CharLit(c) => write!(f, "Char({})", c),
         }
     }
 }
