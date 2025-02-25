@@ -84,6 +84,10 @@ pub fn encode(
         }
         TokenKind::Directive(name) => match name.to_lowercase().as_str() {
             "asciiz" => {
+                let stri = match next_ins {
+                    Some(thing) => thing.1.to_string(),
+                    None => "no".to_string(),
+                };
                 if let Some((_, TokenKind::StringLit(_), _)) = next_ins {
                     for letter in next_ins.unwrap().1.get_str().chars() {
                         encoded_tokens.push(letter as i16);
@@ -91,11 +95,31 @@ pub fn encode(
                 } else {
                     return Err(CodeGenError {
                         file: fname.to_string(),
-                        help: None,
+                        help: Some(format!("found {} argument", stri.magenta())),
                         input: read_file(fname),
                         message: String::from(
                             "ASCIIZ directive must be succeeded by string literal",
                         ),
+                        start_pos: ins.2.start,
+                        last_pos: ins.2.end,
+                    });
+                }
+            }
+            "pad" => {
+                let stri = match next_ins {
+                    Some(thing) => thing.1.to_string(),
+                    None => "no".to_string(),
+                };
+                if let Some((_, TokenKind::IntLit(num), _)) = next_ins {
+                    for _ in 0..=(*num) {
+                        encoded_tokens.push(0);
+                    }
+                } else {
+                    return Err(CodeGenError {
+                        file: fname.to_string(),
+                        help: Some(format!("found {} argument", stri.magenta())),
+                        input: read_file(fname),
+                        message: String::from("PAD directive must be succeeded by integer literal"),
                         start_pos: ins.2.start,
                         last_pos: ins.2.end,
                     });

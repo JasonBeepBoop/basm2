@@ -1,4 +1,4 @@
-use basm2::*;
+use basm::*;
 use colored::*;
 use std::fs::File;
 use std::io::{self, Write};

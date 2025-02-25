@@ -53,7 +53,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "basm2"
+name = "basm"
 version = "0.1.0"
 dependencies = [
  "clap",
