@@ -39,13 +39,43 @@ pub fn process_macros(toks: &mut Vec<(String, TokenKind, Range<usize>)>, error_c
                 curr_mac = Some(v);
             } else {
                 std::mem::drop(mac_map);
-                let info = find_similar_entries(call);
-                let info = if let (Some(s), _) = info {
+                let similars = find_similar_entries(call);
+                let info = if let (Some(s), _) = similars {
                     Some(format!("{} {s}", "╮".bright_red()))
                 } else {
                     None
                 };
-                handle_core_error(fname, span, error_count, "cannot find macro", info);
+                handle_core_error(
+                    fname,
+                    span,
+                    error_count,
+                    &format!("cannot find macro \"{}\"", call.magenta()),
+                    info,
+                );
+                let size = similars.1.len() - 1;
+                let max_filename_length = similars
+                    .1
+                    .iter()
+                    .map(|(filename, _)| filename.len())
+                    .max()
+                    .unwrap_or(0);
+                for (index, (filename, location)) in similars.1.into_iter().enumerate() {
+                    let (l_num, data) = highlight_range_in_file(&filename, &location);
+                    let connector = if index != size { "├" } else { "╰" };
+                    println!(
+                        "         {}{} in {:<width$} {}{} {:^6} {} {}",
+                        connector.bright_red(),
+                        ">".yellow(),
+                        filename.green(),
+                        "─".bright_red(),
+                        ">".yellow(),
+                        l_num.to_string().blue(),
+                        "│".blue(),
+                        data,
+                        width = max_filename_length,
+                    );
+                }
+                println!();
                 break;
             }
             continue;
@@ -53,7 +83,7 @@ pub fn process_macros(toks: &mut Vec<(String, TokenKind, Range<usize>)>, error_c
         if let RightParen = element {
             in_call = false;
             if let Some((_, m)) = curr_mac {
-                match m.is_valid(fname.to_string(), read_file(fname), mac_call_data.clone()) {
+                match m.is_valid(&fname, &read_file(fname), &mac_call_data) {
                     Ok(v) => {
                         expanded_loc_map.insert(counter, v.clone());
                         expanded_indices.push(counter);

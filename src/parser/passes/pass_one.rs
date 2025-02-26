@@ -3,8 +3,8 @@ use std::ops::Range;
 type PassResult = Result<Vec<(Result<TokenKind, ()>, Range<usize>)>, Vec<ParserError>>;
 impl<'a> Parser<'a> {
     pub fn first_pass(
-        file: String,
-        input: String,
+        file: &String,
+        input: &String,
         lexer: logos::SpannedIter<'a, TokenKind>,
     ) -> PassResult {
         let mut tokens = Vec::new();
@@ -13,6 +13,7 @@ impl<'a> Parser<'a> {
         let mut const_names = Vec::new();
         let mut prev_was_const = false;
         let mut saw_amp = false;
+        let mut cspan = 0..0;
         while let Some((token, span)) = lexer.next() {
             match token {
                 Ok(TokenKind::Amp) => saw_amp = true,
@@ -45,6 +46,7 @@ impl<'a> Parser<'a> {
                     saw_amp = false;
                     const_names.push(name);
                     prev_was_const = true;
+                    cspan = span.clone();
                     if let Some((Ok(TokenKind::Equal), _)) = lexer.peek() {
                         lexer.next();
                     } else {
@@ -75,7 +77,7 @@ impl<'a> Parser<'a> {
                     if prev_was_const {
                         if let Some(n) = const_names.pop() {
                             let mut vmap = V_MAP.lock().unwrap();
-                            vmap.insert(n, (file.to_string(), span, v));
+                            vmap.insert(n, (file.to_string(), cspan.clone(), v));
                             std::mem::drop(vmap);
                         } else {
                             errors.push(ParserError {
@@ -102,11 +104,7 @@ impl<'a> Parser<'a> {
                         match lexer.next() {
                             // let's try to do math in it
                             Some((Ok(TokenKind::LeftParen), span)) => {
-                                match parse_expression_after_left_paren(
-                                    &file,
-                                    input.to_string(),
-                                    &mut lexer,
-                                ) {
+                                match parse_expression_after_left_paren(&file, input, &mut lexer) {
                                     Ok(Some((value, new_span))) => {
                                         addr_toks.push((TokenKind::IntLit(value), new_span));
                                     }
@@ -146,12 +144,12 @@ impl<'a> Parser<'a> {
                 }
                 Ok(TokenKind::LeftParen) => 'lpn: {
                     saw_amp = false;
-                    match parse_expression_after_left_paren(&file, input.to_string(), &mut lexer) {
+                    match parse_expression_after_left_paren(&file, &input, &mut lexer) {
                         Ok(Some((value, new_span))) => {
                             if prev_was_const {
                                 if let Some(n) = const_names.pop() {
                                     let mut vmap = V_MAP.lock().unwrap();
-                                    vmap.insert(n, (file.to_string(), new_span, value));
+                                    vmap.insert(n, (file.to_string(), cspan.clone(), value));
                                     std::mem::drop(vmap);
                                 } else {
                                     errors.push(ParserError {
