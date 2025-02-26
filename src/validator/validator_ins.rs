@@ -147,15 +147,9 @@ impl InstructionData {
             return Ok(());
         }
         let span = if !ok_lhs || !valid_lhs {
-            match self.operands.first() {
-                Some(v) => Some(v.1.clone()),
-                None => None,
-            }
+            self.operands.first().map(|v| v.1.clone())
         } else if !ok_rhs || !valid_rhs {
-            match self.operands.get(1) {
-                Some(v) => Some(v.1.clone()),
-                None => None,
-            }
+            self.operands.get(1).map(|v| v.1.clone())
         } else {
             None
         };

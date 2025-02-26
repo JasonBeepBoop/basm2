@@ -2,13 +2,14 @@ use crate::InstructionArgument::*;
 use crate::*;
 use colored::*;
 type CodeGenError = ParserError;
+type CodeGenResult = Result<i16, (CodeGenError, Vec<(String, Range<usize>)>)>;
 use std::ops::Range;
 pub fn encode_instruction(
     fname: &String,
     opcode: &i16,
     class: &u8,
     args: &[(InstructionArgument, Range<usize>)],
-) -> Result<i16, (CodeGenError, Vec<(String, Range<usize>)>)> {
+) -> CodeGenResult {
     let lhs = args.first();
     let rhs = args.get(1);
     let mut encoded;
@@ -253,7 +254,7 @@ pub fn encode_instruction(
             encoded = opcode << 12;
             match &lhs.unwrap().0 {
                 Imm(_) => encoded = encoded | (1 << 8) | lhs.unwrap().0.get_imm(),
-                Reg(r) => encoded = encoded | *r as i16,
+                Reg(r) => encoded |= *r as i16,
                 _ => gen_ice!("MOV TYPE ONE DID NOT HAVE ARG"),
             }
         }
@@ -312,7 +313,7 @@ pub fn encode_instruction(
                 }
             }
             match &rhs.unwrap().0 {
-                Reg(r) => encoded = encoded | (*r as i16),
+                Reg(r) => encoded |= *r as i16,
                 _ => panic!(),
             }
         }
