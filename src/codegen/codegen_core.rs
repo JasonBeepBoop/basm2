@@ -30,7 +30,7 @@ pub const ST_TYPE: u8 = 5;
 pub const MOV_TYPE_ONE: u8 = 6;
 type CodeGenError = ParserError;
 use std::ops::Range;
-type CodeGenResult = Result<Vec<i16>, (CodeGenError, Vec<(String, Range<usize>)>)>;
+type CodeGenResult = Result<Vec<i16>, (Box<CodeGenError>, Vec<(String, Range<usize>)>)>;
 pub fn encode(
     ins: (&String, &TokenKind, &Range<usize>),
     fname: &String,
@@ -96,7 +96,7 @@ pub fn encode(
                     }
                 } else {
                     return Err((
-                        CodeGenError {
+                        Box::new(CodeGenError {
                             file: fname.to_string(),
                             help: Some(format!("found {} argument", stri.magenta())),
                             input: read_file(fname),
@@ -105,7 +105,7 @@ pub fn encode(
                             ),
                             start_pos: ins.2.start,
                             last_pos: ins.2.end,
-                        },
+                        }),
                         vec![],
                     ));
                 }
@@ -119,7 +119,7 @@ pub fn encode(
                     encoded_tokens.extend(vec![0; *num as usize]);
                 } else {
                     return Err((
-                        CodeGenError {
+                        Box::new(CodeGenError {
                             file: fname.to_string(),
                             help: Some(format!("found {} argument", stri.magenta())),
                             input: read_file(fname),
@@ -128,7 +128,7 @@ pub fn encode(
                             ),
                             start_pos: ins.2.start,
                             last_pos: ins.2.end,
-                        },
+                        }),
                         vec![],
                     ));
                 }

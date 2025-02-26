@@ -2,7 +2,7 @@ use crate::InstructionArgument::*;
 use crate::*;
 use colored::*;
 type CodeGenError = ParserError;
-type CodeGenResult = Result<i16, (CodeGenError, Vec<(String, Range<usize>)>)>;
+type CodeGenResult = Result<i16, (Box<CodeGenError>, Vec<(String, Range<usize>)>)>;
 use std::ops::Range;
 pub fn encode_instruction(
     fname: &String,
@@ -34,7 +34,7 @@ pub fn encode_instruction(
                             encoded = encoded | (1 << 7) | (v.0.get_value() as i16);
                         } else {
                             return Err((
-                                CodeGenError {
+                                Box::new(CodeGenError {
                                     file: fname.to_string(),
                                     help: None,
                                     input: read_file(fname),
@@ -43,7 +43,7 @@ pub fn encode_instruction(
                                     ),
                                     start_pos: f.start,
                                     last_pos: f.end,
-                                },
+                                }),
                                 vec![],
                             ));
                         }
@@ -61,7 +61,7 @@ pub fn encode_instruction(
                     if let Some((name, span, value)) = l_map.get(i) {
                         if *value >= 1024 {
                             return Err((
-                                CodeGenError {
+                                Box::new(CodeGenError {
                                     file: name.to_string(),
                                     help: None,
                                     input: read_file(name),
@@ -70,7 +70,7 @@ pub fn encode_instruction(
                                     ),
                                     start_pos: span.start,
                                     last_pos: span.end,
-                                },
+                                }),
                                 vec![],
                             ));
                         } else {
@@ -84,14 +84,14 @@ pub fn encode_instruction(
                             None
                         };
                         return Err((
-                            CodeGenError {
+                            Box::new(CodeGenError {
                                 file: fname.to_string(),
                                 help: info,
                                 input: read_file(fname),
                                 message: format!("cannot find label \"{i}\""),
                                 start_pos: args.first().unwrap().1.start,
                                 last_pos: args.first().unwrap().1.end,
-                            },
+                            }),
                             find_similar_entries(i).1,
                         ));
                     }
@@ -101,14 +101,14 @@ pub fn encode_instruction(
                         encoded |= v.0.get_value() as i16; // value limits are checked earlier
                     } else {
                         return Err((
-                            CodeGenError {
+                            Box::new(CodeGenError {
                                 file: fname.to_string(),
                                 help: None,
                                 input: read_file(fname),
                                 message: String::from("Branch instruction memory appears empty"),
                                 start_pos: args.first().unwrap().1.start,
                                 last_pos: args.first().unwrap().1.end,
-                            },
+                            }),
                             vec![],
                         ));
                     }
@@ -126,7 +126,7 @@ pub fn encode_instruction(
                     if let Some((name, span, value)) = l_map.get(i) {
                         if *value >= 2048 {
                             return Err((
-                                CodeGenError {
+                                Box::new(CodeGenError {
                                     file: name.to_string(),
                                     help: None,
                                     input: read_file(name),
@@ -135,7 +135,7 @@ pub fn encode_instruction(
                                     ),
                                     start_pos: span.start,
                                     last_pos: span.end,
-                                },
+                                }),
                                 vec![],
                             ));
                         } else {
@@ -143,14 +143,14 @@ pub fn encode_instruction(
                         }
                     } else {
                         return Err((
-                            CodeGenError {
+                            Box::new(CodeGenError {
                                 file: fname.to_string(),
                                 help: None,
                                 input: read_file(fname),
                                 message: format!("cannot find label \"{i}\""),
                                 start_pos: args.first().unwrap().1.start,
                                 last_pos: args.first().unwrap().1.end,
-                            },
+                            }),
                             vec![],
                         ));
                     }
@@ -161,14 +161,14 @@ pub fn encode_instruction(
                         encoded = encoded | (1 << 11) | v.0.get_value() as i16;
                     } else {
                         return Err((
-                            CodeGenError {
+                            Box::new(CodeGenError {
                                 file: fname.to_string(),
                                 help: None,
                                 input: read_file(fname),
                                 message: String::from("POP instruction memory appears empty"),
                                 start_pos: args.first().unwrap().1.start,
                                 last_pos: args.first().unwrap().1.end,
-                            },
+                            }),
                             vec![],
                         ));
                     }
@@ -192,7 +192,7 @@ pub fn encode_instruction(
                     if let Some((name, span, value)) = l_map.get(i) {
                         if *value >= 512 {
                             return Err((
-                                CodeGenError {
+                                Box::new(CodeGenError {
                                     file: name.to_string(),
                                     help: None,
                                     input: read_file(name),
@@ -201,7 +201,7 @@ pub fn encode_instruction(
                                     ),
                                     start_pos: span.start,
                                     last_pos: span.end,
-                                },
+                                }),
                                 vec![],
                             ));
                         } else {
@@ -215,14 +215,14 @@ pub fn encode_instruction(
                             None
                         };
                         return Err((
-                            CodeGenError {
+                            Box::new(CodeGenError {
                                 file: fname.to_string(),
                                 help: info,
                                 input: read_file(fname),
                                 message: format!("cannot find label \"{i}\""),
                                 start_pos: args.get(1).unwrap().1.start,
                                 last_pos: args.get(1).unwrap().1.end,
-                            },
+                            }),
                             find_similar_entries(i).1,
                         ));
                     }
@@ -233,14 +233,14 @@ pub fn encode_instruction(
                         encoded |= v.0.get_value() as i16;
                     } else {
                         return Err((
-                            CodeGenError {
+                            Box::new(CodeGenError {
                                 file: fname.to_string(),
                                 help: None,
                                 input: read_file(fname),
                                 message: String::from("LD/LEA instruction memory appears empty"),
                                 start_pos: args.get(1).unwrap().1.start,
                                 last_pos: args.get(1).unwrap().1.end,
-                            },
+                            }),
                             vec![],
                         ));
                     }
@@ -265,7 +265,7 @@ pub fn encode_instruction(
                     if let Some((name, span, value)) = l_map.get(i) {
                         if *value >= 256 {
                             return Err((
-                                CodeGenError {
+                                Box::new(CodeGenError {
                                     file: name.to_string(),
                                     help: None,
                                     input: read_file(name),
@@ -274,7 +274,7 @@ pub fn encode_instruction(
                                     ),
                                     start_pos: span.start,
                                     last_pos: span.end,
-                                },
+                                }),
                                 vec![],
                             ));
                         } else {
@@ -288,14 +288,14 @@ pub fn encode_instruction(
                             None
                         };
                         return Err((
-                            CodeGenError {
+                            Box::new(CodeGenError {
                                 file: fname.to_string(),
                                 help: info,
                                 input: read_file(fname),
                                 message: format!("cannot find label \"{i}\""),
                                 start_pos: args.first().unwrap().1.start,
                                 last_pos: args.first().unwrap().1.end,
-                            },
+                            }),
                             find_similar_entries(i).1,
                         ));
                     }
