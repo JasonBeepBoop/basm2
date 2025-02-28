@@ -6,7 +6,7 @@ start:
     lea r2, [0xff]
     add r1, r2
     add r1, r2
-    add r1, r2
+    add r1, [0xff]
     add r1, r2
     lea r2, [0xff]
     add r1, r2
