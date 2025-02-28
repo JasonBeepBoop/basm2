@@ -314,7 +314,7 @@ pub fn encode_instruction(
             }
             match &rhs.unwrap().0 {
                 Reg(r) => encoded |= *r as i16,
-                _ => panic!(),
+                _ => gen_ice!("Right hand side of ST is not a register"),
             }
         }
         _ => gen_ice!("INVALID INSTRUCTION TYPE IN CODEGEN"),

@@ -90,7 +90,7 @@ impl MacroContent {
                         err_message: format!("expected {}, found {d}", arg.arg_type),
                         help: None,
                         orig_input: orig_data.to_string(), // this shouldn't panic
-                        orig_pos: parsed_toks.get(index - 1).unwrap().1.clone(),
+                        orig_pos: parsed_toks.get(index).unwrap().1.clone(),
                         mac: self.clone(),
                     });
                     return Err(errs);
@@ -155,7 +155,7 @@ impl MacroContent {
                         if let Some(v) = arg_map.get(&name) {
                             ins_args.push((v.to_tok_kind(), span.clone()));
                             continue;
-                        } else {
+                        } else { // we could make this a variable earlier and just send it
                             errs.push(MacroValidatorError {
                                 err_file: self.file.to_string(),
                                 err_input: read_file(&self.file.to_string()),
