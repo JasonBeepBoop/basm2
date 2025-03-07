@@ -58,18 +58,23 @@ pub fn encode_instruction(
             match &lhs.unwrap().0 {
                 // safe to unwrap - checked earlier
                 Ident(i) => {
-                    if let Some((name, span, value)) = l_map.get(i) {
+                    if let Some((name, _, value)) = l_map.get(i) {
                         if *value >= 1024 {
+                            let size = format!("{:b}", value).len();
+                            let howbig = format!("0x{value:X}").red();
                             return Err((
                                 Box::new(CodeGenError {
                                     file: name.to_string(),
-                                    help: None,
+                                    help: Some(format!(
+                                        "\"{i}\" has an address of {howbig}, which is {} bits wide",
+                                        size.to_string().magenta()
+                                    )),
                                     input: read_file(name),
                                     message: format!(
                                         "the address of label \"{i}\" cannot fit within 10 bits"
                                     ),
-                                    start_pos: span.start,
-                                    last_pos: span.end,
+                                    start_pos: args.first().unwrap().1.start,
+                                    last_pos: args.first().unwrap().1.end,
                                 }),
                                 vec![],
                             ));
@@ -125,18 +130,23 @@ pub fn encode_instruction(
             encoded = opcode << 12;
             match &lhs.unwrap().0 {
                 Ident(i) => {
-                    if let Some((name, span, value)) = l_map.get(i) {
+                    if let Some((name, _, value)) = l_map.get(i) {
                         if *value >= 2048 {
+                            let size = format!("{:b}", value).len();
+                            let howbig = format!("0x{value:X}").red();
                             return Err((
                                 Box::new(CodeGenError {
                                     file: name.to_string(),
-                                    help: None,
+                                    help: Some(format!(
+                                        "\"{i}\" has an address of {howbig}, which is {} bits wide",
+                                        size.to_string().magenta()
+                                    )),
                                     input: read_file(name),
                                     message: format!(
                                         "the address of label \"{i}\" cannot fit within 11 bits"
                                     ),
-                                    start_pos: span.start,
-                                    last_pos: span.end,
+                                    start_pos: args.first().unwrap().1.start,
+                                    last_pos: args.first().unwrap().1.end,
                                 }),
                                 vec![],
                             ));
@@ -191,18 +201,23 @@ pub fn encode_instruction(
             }
             match &rhs.unwrap().0 {
                 Ident(i) => {
-                    if let Some((name, span, value)) = l_map.get(i) {
+                    if let Some((name, _, value)) = l_map.get(i) {
                         if *value >= 512 {
+                            let size = format!("{:b}", value).len();
+                            let howbig = format!("0x{value:X}").red();
                             return Err((
                                 Box::new(CodeGenError {
                                     file: name.to_string(),
-                                    help: None,
+                                    help: Some(format!(
+                                        "\"{i}\" has an address of {howbig}, which is {} bits wide",
+                                        size.to_string().magenta()
+                                    )),
                                     input: read_file(name),
                                     message: format!(
                                         "the address of label \"{i}\" cannot fit within 9 bits"
                                     ),
-                                    start_pos: span.start,
-                                    last_pos: span.end,
+                                    start_pos: args.get(1).unwrap().1.start,
+                                    last_pos: args.get(1).unwrap().1.end,
                                 }),
                                 vec![],
                             ));
@@ -264,18 +279,23 @@ pub fn encode_instruction(
             encoded = opcode << 12;
             match &lhs.unwrap().0 {
                 Ident(i) => {
-                    if let Some((name, span, value)) = l_map.get(i) {
+                    if let Some((name, _, value)) = l_map.get(i) {
                         if *value >= 256 {
+                            let size = format!("{:b}", value).len();
+                            let howbig = format!("0x{value:X}").red();
                             return Err((
                                 Box::new(CodeGenError {
                                     file: name.to_string(),
-                                    help: None,
+                                    help: Some(format!(
+                                        "\"{i}\" has an address of {howbig}, which is {} bits wide",
+                                        size.to_string().magenta()
+                                    )),
                                     input: read_file(name),
                                     message: format!(
                                         "the address of label \"{i}\" cannot fit within 8 bits"
                                     ),
-                                    start_pos: span.start,
-                                    last_pos: span.end,
+                                    start_pos: args.first().unwrap().1.start,
+                                    last_pos: args.first().unwrap().1.end,
                                 }),
                                 vec![],
                             ));

@@ -1,10 +1,12 @@
 use crate::*;
+use colored::*;
 use logos::Logos;
 use std::iter::Peekable;
 use std::ops::Range;
 use std::vec::IntoIter;
+
 type ParsingLexer = Peekable<IntoIter<(Result<TokenKind, ()>, Range<usize>)>>;
-type ParserResult<'a> = Result<Vec<(String, TokenKind, Range<usize>)>, &'a Vec<ParserError>>;
+type ParserResult<'a> = Result<Vec<(String, TokenKind, Range<usize>)>, &'a [ParserError]>;
 pub struct Parser<'a> {
     pub file: String,
     pub lexer: ParsingLexer,
@@ -13,7 +15,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(file: &String, input: &'a str) -> Result<Self, Vec<ParserError>> {
+    pub fn new(file: &String, input: &'a str) -> Result<Self, Vec<(ParserError, bool)>> {
         let errors = Vec::new();
         let lexer = TokenKind::lexer(input).spanned();
 
@@ -63,6 +65,7 @@ impl<'a> Parser<'a> {
                         start_pos: span.start,
                         last_pos: span.end,
                     });
+                    println!("Token stream {:?}", self.lexer);
                 }
             }
         }
@@ -85,9 +88,33 @@ pub fn create_parser<'a>(
     match Parser::new(&String::from(file), input_string) {
         Ok(parser) => Some(parser),
         Err(errors) => {
-            for error in errors {
+            let mut prev_was_chained = false;
+            for (index, (error, chain)) in errors.clone().into_iter().enumerate() {
                 *error_count += 1;
-                println!("{error}\n");
+                if !prev_was_chained {
+                    println!("{error}");
+                }
+                if chain {
+                    prev_was_chained = true;
+                    let (next, _) = errors.get(index + 1).unwrap();
+                    let (num, data) =
+                        highlight_range_in_file(&next.file, &(next.start_pos..next.last_pos));
+                    println!(
+                        "         {}{} in {} {}{} {:^6} {} {}",
+                        "╰".bright_red(),
+                        ">".yellow(),
+                        next.file.green(),
+                        "-".bright_red(),
+                        ">".yellow(),
+                        num.to_string().blue(),
+                        "│".blue(),
+                        data
+                    );
+                    continue;
+                } else {
+                    println!();
+                }
+                prev_was_chained = false;
             }
             None
         }
