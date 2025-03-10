@@ -7,6 +7,7 @@ use std::vec::IntoIter;
 
 type ParsingLexer = Peekable<IntoIter<(Result<TokenKind, ()>, Range<usize>)>>;
 type ParserResult<'a> = Result<Vec<(String, TokenKind, Range<usize>)>, &'a [ParserError]>;
+
 pub struct Parser<'a> {
     pub file: String,
     pub lexer: ParsingLexer,
@@ -139,7 +140,7 @@ pub fn parse_tokens(
         Err(errors) => {
             for error in errors {
                 *error_count += 1;
-                println!("{error}\n");
+                println!("{error}");
             }
             None
         }

@@ -1,4 +1,5 @@
 use crate::*;
+use colored::*;
 use std::ops::Range;
 
 pub fn process_start(toks: &mut Vec<(String, TokenKind, Range<usize>)>, error_count: &mut i32) {
@@ -66,7 +67,6 @@ pub fn process_start(toks: &mut Vec<(String, TokenKind, Range<usize>)>, error_co
         }
     }
     *toks = new_toks;
-    print_errc!(*error_count);
 }
 
 fn process_directives(
@@ -81,10 +81,32 @@ fn process_directives(
     while let Some((fname, tok, span)) = toks_iter.next() {
         match tok {
             Label(name) => {
-                l_map.insert(
-                    name,
-                    (fname.to_string(), span.clone(), loc_counter as usize),
-                );
+                if let Some((file, location, _)) = l_map.get(&name) {
+                    handle_core_error(
+                        &fname,
+                        &span,
+                        error_count,
+                        &format!("label `{}` has already been declared", name.magenta()),
+                        Some(format!("{} previous declaration here", "╮".bright_red())),
+                    );
+                    let (num, data) = highlight_range_in_file(&fname, location);
+                    println!(
+                        "         {}{} in {} {}{} {:^6} {} {}\n",
+                        "╰".bright_red(),
+                        ">".yellow(),
+                        file.green(),
+                        "-".bright_red(),
+                        ">".yellow(),
+                        num.to_string().blue(),
+                        "│".blue(),
+                        data
+                    );
+                } else {
+                    l_map.insert(
+                        name,
+                        (fname.to_string(), span.clone(), loc_counter as usize),
+                    );
+                }
             }
             Directive(data) => match data.trim() {
                 "start" => {
@@ -170,7 +192,7 @@ fn process_directives(
                 }
             },
             Instruction(_) => loc_counter += 1,
-            Newline => (),
+            Newline | LeftBrace | RightBrace => (),
             _ => {
                 handle_core_error(
                     &fname,
@@ -183,5 +205,4 @@ fn process_directives(
             }
         }
     }
-    print_errc!(*error_count);
 }

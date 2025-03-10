@@ -8,13 +8,13 @@ pub fn process_macros(toks: &mut Vec<(String, TokenKind, Range<usize>)>, error_c
     for (index, (fname, element, span)) in toks.iter().enumerate() {
         if let Macro(data) = element {
             let mut mac_map = MACRO_MAP.lock().unwrap();
-            if let Some((found_name, found_data)) = mac_map.get(&data.name.0) {
+            if let Some((_, found_data)) = mac_map.get(&data.name.0) {
                 handle_core_error(
                     fname,
                     span,
                     error_count,
-                    &format!("duplicate declaration of macro {}", found_name.magenta()),
-                    Some(format!("{}", "╮".bright_red())),
+                    &format!("macro `{}` was declared twice", found_data.name.0.magenta()),
+                    Some(format!("{} previous declaration here", "╮".bright_red())),
                 );
                 let (num, data) = highlight_range_in_file(
                     &found_data.file,
@@ -48,7 +48,8 @@ pub fn process_macros(toks: &mut Vec<(String, TokenKind, Range<usize>)>, error_c
     let mut in_call = false;
     let mut curr_mac = None;
 
-    let mut expanded_loc_map: HashMap<usize, Vec<(TokenKind, Range<usize>)>> = HashMap::new();
+    let mut expanded_loc_map: HashMap<usize, Vec<(String, TokenKind, Range<usize>)>> =
+        HashMap::new();
     let mut expanded_indices = Vec::new();
 
     let mac_map = MACRO_MAP.lock().unwrap();
@@ -107,14 +108,14 @@ pub fn process_macros(toks: &mut Vec<(String, TokenKind, Range<usize>)>, error_c
         if let RightParen = element {
             in_call = false;
             if let Some((_, m)) = curr_mac {
-                match m.is_valid(fname, &read_file(fname), &mac_call_data) {
+                match m.expand(span, fname, &read_file(fname), &mac_call_data) {
                     Ok(v) => {
                         expanded_loc_map.insert(counter, v.clone());
                         expanded_indices.push(counter);
                     }
                     Err(errors) => {
                         for e in errors {
-                            println!("{e}\n");
+                            println!("{e}");
                             *error_count += 1;
                         }
                     }
@@ -132,15 +133,8 @@ pub fn process_macros(toks: &mut Vec<(String, TokenKind, Range<usize>)>, error_c
         if expanded_indices.contains(&i) {
             let expanded = expanded_loc_map.get(&i).unwrap();
             for element in expanded.iter().rev() {
-                let (x, y) = element;
-                toks.insert(
-                    i,
-                    (
-                        String::from("NULL: EXPANDED FROM MACRO"),
-                        x.clone(),
-                        y.clone(),
-                    ),
-                );
+                let (z, x, y) = element;
+                toks.insert(i, (z.to_string(), x.clone(), y.clone()));
             }
         }
     }
@@ -160,6 +154,5 @@ pub fn process_macros(toks: &mut Vec<(String, TokenKind, Range<usize>)>, error_c
             _ => new_tokens.push((f, v, s)),
         }
     }
-    print_errc!(*error_count);
     *toks = new_tokens;
 }
